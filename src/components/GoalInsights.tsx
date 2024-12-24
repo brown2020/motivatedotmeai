@@ -73,7 +73,7 @@ export const GoalInsights: React.FC<GoalInsightsProps> = ({ goalId }) => {
                   : "bg-gray-100 text-gray-800"
               }`}
             >
-              {goal.status.replace("_", " ")}
+              {(goal.status || "not_started").replace("_", " ")}
             </span>
           </div>
         </div>

@@ -20,51 +20,18 @@ import {
   Timestamp,
   FirestoreError,
 } from "firebase/firestore";
-
-interface Milestone {
-  id: string;
-  name: string;
-  targetDate: Date;
-  completed: boolean;
-  weight: number; // Percentage this milestone contributes to overall goal
-}
+import { Goal, Milestone } from "@/types/goals";
 
 interface FirestoreMilestone extends Omit<Milestone, "targetDate"> {
   targetDate: Timestamp;
 }
 
-interface Goal {
-  id: string;
-  name: string;
-  reason: string;
-  endDate: Date;
-  progress: number;
-  category:
-    | "personal"
-    | "professional"
-    | "health"
-    | "learning"
-    | "financial"
-    | "other";
-  priority: "low" | "medium" | "high";
-  milestones: Milestone[];
-  userId: string;
-  status: "not_started" | "in_progress" | "completed" | "overdue";
-  tags: string[];
-  metrics?: {
-    type: "numeric" | "boolean" | "percentage";
-    target: number;
-    current: number;
-    unit?: string;
-  };
-  lastUpdated: Date;
-  reminderFrequency?: "daily" | "weekly" | "monthly";
-  nextReminder?: Date;
-}
-
-interface FirestoreGoal extends Omit<Goal, "endDate" | "milestones"> {
+interface FirestoreGoal
+  extends Omit<Goal, "endDate" | "milestones" | "lastUpdated"> {
   endDate: Timestamp;
   milestones: FirestoreMilestone[];
+  userId: string;
+  lastUpdated: Timestamp;
 }
 
 interface Habit {
@@ -109,6 +76,7 @@ interface AppContextType {
   error: ErrorState | null;
   clearError: () => void;
   addGoal: (goal: Omit<Goal, "id" | "userId">) => Promise<void>;
+  updateGoal: (goal: Goal) => Promise<void>;
   addHabit: (
     habit: Omit<Habit, "id" | "completions" | "userId">
   ) => Promise<void>;
@@ -185,6 +153,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
               ...m,
               targetDate: m.targetDate.toDate(),
             })),
+            tags: data.tags || [],
+            lastUpdated: data.lastUpdated
+              ? data.lastUpdated.toDate()
+              : new Date(),
           });
         });
         setGoals(goalsData);
@@ -258,23 +230,46 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribe();
   }, [authUser?.uid]);
 
-  const addGoal = async (goal: Omit<Goal, "id" | "userId">) => {
+  const addGoal = async (goalData: Omit<Goal, "id" | "userId">) => {
     if (!authUser?.uid) return;
 
     try {
-      await addDoc(collection(db, "goals"), {
-        ...goal,
+      const newGoal: Omit<FirestoreGoal, "id"> = {
+        ...goalData,
         userId: authUser.uid,
-        endDate: Timestamp.fromDate(goal.endDate),
-        milestones: goal.milestones.map((m) => ({
+        endDate: Timestamp.fromDate(goalData.endDate),
+        milestones: goalData.milestones.map((m) => ({
           ...m,
           targetDate: Timestamp.fromDate(m.targetDate),
         })),
-        createdAt: Timestamp.now(),
-      });
+        lastUpdated: Timestamp.fromDate(goalData.lastUpdated),
+      };
+
+      await addDoc(collection(db, "goals"), newGoal);
     } catch (error) {
       handleFirestoreError(error as FirestoreError, "operation");
-      throw error; // Re-throw to handle in the UI
+    }
+  };
+
+  const updateGoal = async (goalData: Goal) => {
+    if (!authUser?.uid) return;
+
+    try {
+      const goalRef = doc(db, "goals", goalData.id);
+      const updatedGoal: Omit<FirestoreGoal, "id"> = {
+        ...goalData,
+        userId: authUser.uid,
+        endDate: Timestamp.fromDate(goalData.endDate),
+        milestones: goalData.milestones.map((m) => ({
+          ...m,
+          targetDate: Timestamp.fromDate(m.targetDate),
+        })),
+        lastUpdated: Timestamp.fromDate(goalData.lastUpdated),
+      };
+
+      await updateDoc(goalRef, updatedGoal);
+    } catch (error) {
+      handleFirestoreError(error as FirestoreError, "operation");
     }
   };
 
@@ -439,9 +434,20 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const totalMilestones = goal.milestones.length;
 
     // Calculate if the goal is on track
-    const elapsedTime = now.getTime() - goal.lastUpdated.getTime();
-    const totalTime = goal.endDate.getTime() - goal.lastUpdated.getTime();
-    const expectedProgress = (elapsedTime / totalTime) * 100;
+    // If lastUpdated is undefined or invalid, use the current date
+    let lastUpdated: Date;
+    try {
+      lastUpdated =
+        goal.lastUpdated instanceof Date ? goal.lastUpdated : new Date();
+    } catch {
+      lastUpdated = new Date();
+    }
+
+    const elapsedTime = now.getTime() - lastUpdated.getTime();
+    const totalTime = goal.endDate.getTime() - lastUpdated.getTime();
+    // If totalTime is 0 or negative, consider the goal off track
+    const expectedProgress =
+      totalTime <= 0 ? 100 : (elapsedTime / totalTime) * 100;
     const isOnTrack = goal.progress >= expectedProgress;
 
     // Find next milestone
@@ -468,6 +474,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         error,
         clearError,
         addGoal,
+        updateGoal,
         addHabit,
         completeHabit,
         updateGoalProgress,

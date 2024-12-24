@@ -3,12 +3,8 @@
 import Header from "@/components/Header";
 import { useApp } from "@/context/AppContext";
 import { useState } from "react";
-
-interface NewGoalForm {
-  name: string;
-  reason: string;
-  endDate: string;
-}
+import Link from "next/link";
+import { NewGoalForm, GoalCategory, GoalPriority } from "@/types/goals";
 
 export default function GoalsPage() {
   const { goals, addGoal } = useApp();
@@ -17,24 +13,62 @@ export default function GoalsPage() {
     name: "",
     reason: "",
     endDate: "",
+    category: "personal",
+    priority: "medium",
+    tags: [],
   });
+  const [tagInput, setTagInput] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const now = new Date();
+    const endDate = new Date(newGoal.endDate);
+    const status = endDate < now ? "overdue" : "not_started";
+
     addGoal({
       name: newGoal.name,
       reason: newGoal.reason,
-      endDate: new Date(newGoal.endDate),
+      endDate: endDate,
       progress: 0,
       milestones: [],
-      category: "personal",
-      priority: "medium",
-      status: "not_started",
-      tags: [],
-      lastUpdated: new Date(),
+      category: newGoal.category,
+      priority: newGoal.priority,
+      status: status,
+      tags: newGoal.tags || [],
+      lastUpdated: now,
+      metrics: undefined,
+      reminderFrequency: undefined,
+      nextReminder: undefined,
     });
     setIsAddingGoal(false);
-    setNewGoal({ name: "", reason: "", endDate: "" });
+    setNewGoal({
+      name: "",
+      reason: "",
+      endDate: "",
+      category: "personal",
+      priority: "medium",
+      tags: [],
+    });
+  };
+
+  const handleAddTag = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && tagInput.trim()) {
+      e.preventDefault();
+      if (!newGoal.tags.includes(tagInput.trim())) {
+        setNewGoal({
+          ...newGoal,
+          tags: [...newGoal.tags, tagInput.trim()],
+        });
+      }
+      setTagInput("");
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setNewGoal({
+      ...newGoal,
+      tags: newGoal.tags.filter((tag) => tag !== tagToRemove),
+    });
   };
 
   return (
@@ -117,6 +151,93 @@ export default function GoalsPage() {
                       }
                     />
                   </div>
+                  <div>
+                    <label
+                      htmlFor="category"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Category
+                    </label>
+                    <select
+                      id="category"
+                      required
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      value={newGoal.category}
+                      onChange={(e) =>
+                        setNewGoal({
+                          ...newGoal,
+                          category: e.target.value as GoalCategory,
+                        })
+                      }
+                    >
+                      <option value="personal">Personal</option>
+                      <option value="work">Work</option>
+                      <option value="health">Health</option>
+                      <option value="education">Education</option>
+                      <option value="finance">Finance</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="priority"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Priority
+                    </label>
+                    <select
+                      id="priority"
+                      required
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      value={newGoal.priority}
+                      onChange={(e) =>
+                        setNewGoal({
+                          ...newGoal,
+                          priority: e.target.value as GoalPriority,
+                        })
+                      }
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="tags"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Tags
+                    </label>
+                    <div className="mt-1">
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {newGoal.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                          >
+                            {tag}
+                            <button
+                              type="button"
+                              onClick={() => removeTag(tag)}
+                              className="ml-1 inline-flex items-center justify-center"
+                            >
+                              <span className="sr-only">Remove tag</span>×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                      <input
+                        type="text"
+                        id="tags"
+                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                        placeholder="Type and press Enter to add tags"
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        onKeyDown={handleAddTag}
+                      />
+                    </div>
+                  </div>
                 </div>
                 <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3">
                   <button
@@ -167,36 +288,81 @@ export default function GoalsPage() {
               <ul role="list" className="divide-y divide-gray-200">
                 {goals.map((goal) => (
                   <li key={goal.id}>
-                    <div className="px-4 py-4 sm:px-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-lg font-medium text-indigo-600 truncate">
-                            {goal.name}
-                          </h3>
-                          <p className="mt-1 text-sm text-gray-500">
-                            {goal.reason}
-                          </p>
+                    <Link
+                      href={`/goals/${goal.id}`}
+                      className="block hover:bg-gray-50"
+                    >
+                      <div className="px-4 py-4 sm:px-6">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-lg font-medium text-indigo-600 truncate">
+                              {goal.name}
+                            </h3>
+                            <p className="mt-1 text-sm text-gray-500">
+                              {goal.reason}
+                            </p>
+                            <div className="mt-2 flex items-center space-x-2">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize bg-gray-100 text-gray-800">
+                                {goal.category}
+                              </span>
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize bg-gray-100 text-gray-800">
+                                {goal.priority} priority
+                              </span>
+                              {goal.tags?.map((tag) => (
+                                <span
+                                  key={tag}
+                                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="ml-4 flex-shrink-0">
+                            <div className="flex flex-col items-end space-y-2">
+                              <span
+                                className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                  goal.progress >= 100
+                                    ? "bg-green-100 text-green-800"
+                                    : goal.progress >= 50
+                                    ? "bg-blue-100 text-blue-800"
+                                    : "bg-yellow-100 text-yellow-800"
+                                }`}
+                              >
+                                {goal.progress}% complete
+                              </span>
+                              <span className="text-sm text-gray-500">
+                                Due{" "}
+                                {new Date(goal.endDate).toLocaleDateString()}
+                              </span>
+                              {goal.milestones.length > 0 && (
+                                <span className="text-sm text-gray-500">
+                                  {
+                                    goal.milestones.filter((m) => m.completed)
+                                      .length
+                                  }
+                                  /{goal.milestones.length} milestones completed
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div className="ml-4 flex-shrink-0">
-                          <div className="flex items-center space-x-4">
-                            <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              {goal.progress}% complete
-                            </span>
-                            <span className="text-sm text-gray-500">
-                              Due {new Date(goal.endDate).toLocaleDateString()}
-                            </span>
+                        <div className="mt-2">
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className={`h-2 rounded-full transition-all duration-300 ${
+                                goal.progress >= 100
+                                  ? "bg-green-500"
+                                  : goal.progress >= 50
+                                  ? "bg-blue-500"
+                                  : "bg-yellow-500"
+                              }`}
+                              style={{ width: `${goal.progress}%` }}
+                            />
                           </div>
                         </div>
                       </div>
-                      <div className="mt-2">
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className="bg-indigo-600 h-2 rounded-full"
-                            style={{ width: `${goal.progress}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
+                    </Link>
                   </li>
                 ))}
               </ul>
