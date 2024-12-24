@@ -27,6 +27,11 @@ export default function GoalsPage() {
       endDate: new Date(newGoal.endDate),
       progress: 0,
       milestones: [],
+      category: "personal",
+      priority: "medium",
+      status: "not_started",
+      tags: [],
+      lastUpdated: new Date(),
     });
     setIsAddingGoal(false);
     setNewGoal({ name: "", reason: "", endDate: "" });

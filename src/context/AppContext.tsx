@@ -26,6 +26,7 @@ interface Milestone {
   name: string;
   targetDate: Date;
   completed: boolean;
+  weight: number; // Percentage this milestone contributes to overall goal
 }
 
 interface FirestoreMilestone extends Omit<Milestone, "targetDate"> {
@@ -38,8 +39,27 @@ interface Goal {
   reason: string;
   endDate: Date;
   progress: number;
+  category:
+    | "personal"
+    | "professional"
+    | "health"
+    | "learning"
+    | "financial"
+    | "other";
+  priority: "low" | "medium" | "high";
   milestones: Milestone[];
   userId: string;
+  status: "not_started" | "in_progress" | "completed" | "overdue";
+  tags: string[];
+  metrics?: {
+    type: "numeric" | "boolean" | "percentage";
+    target: number;
+    current: number;
+    unit?: string;
+  };
+  lastUpdated: Date;
+  reminderFrequency?: "daily" | "weekly" | "monthly";
+  nextReminder?: Date;
 }
 
 interface FirestoreGoal extends Omit<Goal, "endDate" | "milestones"> {
@@ -96,6 +116,15 @@ interface AppContextType {
   updateGoalProgress: (goalId: string, progress: number) => Promise<void>;
   completeMilestone: (goalId: string, milestoneId: string) => Promise<void>;
   setUserPreferences: (preferences: User["preferences"]) => Promise<void>;
+  calculateGoalProgress: (goalId: string) => Promise<void>;
+  updateGoalStatus: (goalId: string) => Promise<void>;
+  getGoalInsights: (goalId: string) => {
+    daysRemaining: number;
+    completedMilestones: number;
+    totalMilestones: number;
+    isOnTrack: boolean;
+    nextMilestone?: Milestone;
+  };
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -337,6 +366,98 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const calculateGoalProgress = async (goalId: string) => {
+    if (!authUser?.uid) return;
+
+    try {
+      const goal = goals.find((g) => g.id === goalId);
+      if (!goal) throw new Error("Goal not found");
+
+      let progress = 0;
+      if (goal.metrics) {
+        // Calculate progress based on metrics
+        progress = Math.min(
+          100,
+          (goal.metrics.current / goal.metrics.target) * 100
+        );
+      } else {
+        // Calculate progress based on weighted milestones
+        const completedWeight = goal.milestones
+          .filter((m) => m.completed)
+          .reduce((sum, m) => sum + m.weight, 0);
+        progress = Math.min(100, completedWeight);
+      }
+
+      const goalRef = doc(db, "goals", goalId);
+      await updateDoc(goalRef, {
+        progress,
+        lastUpdated: Timestamp.now(),
+      });
+    } catch (error) {
+      handleFirestoreError(error as FirestoreError, "operation");
+      throw error;
+    }
+  };
+
+  const updateGoalStatus = async (goalId: string) => {
+    if (!authUser?.uid) return;
+
+    try {
+      const goal = goals.find((g) => g.id === goalId);
+      if (!goal) throw new Error("Goal not found");
+
+      let status: Goal["status"] = "not_started";
+      const now = new Date();
+
+      if (goal.progress >= 100) {
+        status = "completed";
+      } else if (goal.progress > 0) {
+        status = "in_progress";
+      } else if (goal.endDate < now) {
+        status = "overdue";
+      }
+
+      const goalRef = doc(db, "goals", goalId);
+      await updateDoc(goalRef, { status });
+    } catch (error) {
+      handleFirestoreError(error as FirestoreError, "operation");
+      throw error;
+    }
+  };
+
+  const getGoalInsights = (goalId: string) => {
+    const goal = goals.find((g) => g.id === goalId);
+    if (!goal) throw new Error("Goal not found");
+
+    const now = new Date();
+    const daysRemaining = Math.ceil(
+      (goal.endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    const completedMilestones = goal.milestones.filter(
+      (m) => m.completed
+    ).length;
+    const totalMilestones = goal.milestones.length;
+
+    // Calculate if the goal is on track
+    const elapsedTime = now.getTime() - goal.lastUpdated.getTime();
+    const totalTime = goal.endDate.getTime() - goal.lastUpdated.getTime();
+    const expectedProgress = (elapsedTime / totalTime) * 100;
+    const isOnTrack = goal.progress >= expectedProgress;
+
+    // Find next milestone
+    const nextMilestone = goal.milestones
+      .filter((m) => !m.completed)
+      .sort((a, b) => a.targetDate.getTime() - b.targetDate.getTime())[0];
+
+    return {
+      daysRemaining,
+      completedMilestones,
+      totalMilestones,
+      isOnTrack,
+      nextMilestone,
+    };
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -352,6 +473,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         updateGoalProgress,
         completeMilestone,
         setUserPreferences,
+        calculateGoalProgress,
+        updateGoalStatus,
+        getGoalInsights,
       }}
     >
       {children}
