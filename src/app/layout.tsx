@@ -9,7 +9,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Motivated.me AI",
+  title: "Motivate.me AI",
   description: "AI-powered goal tracking and habit building",
 };
 
