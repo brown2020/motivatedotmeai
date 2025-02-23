@@ -11,7 +11,7 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({ message, onClose }) => {
   return (
     <div className="rounded-md bg-red-50 p-4">
       <div className="flex">
-        <div className="flex-shrink-0">
+        <div className="shrink-0">
           <svg
             className="h-5 w-5 text-red-400"
             viewBox="0 0 20 20"
@@ -37,7 +37,7 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({ message, onClose }) => {
               <button
                 type="button"
                 onClick={onClose}
-                className="inline-flex rounded-md bg-red-50 p-1.5 text-red-500 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 focus:ring-offset-red-50"
+                className="inline-flex rounded-md bg-red-50 p-1.5 text-red-500 hover:bg-red-100 focus:outline-hidden focus:ring-2 focus:ring-red-600 focus:ring-offset-2 focus:ring-offset-red-50"
               >
                 <span className="sr-only">Dismiss</span>
                 <svg

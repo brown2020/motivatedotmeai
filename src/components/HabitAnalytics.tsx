@@ -120,14 +120,14 @@ export const HabitAnalytics: React.FC<HabitAnalyticsProps> = ({ habitId }) => {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-white rounded-lg shadow-sm p-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">
         Habit Analytics
       </h3>
 
       {/* Streaks */}
       <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-lg p-4">
+        <div className="bg-linear-to-br from-indigo-50 to-blue-50 rounded-lg p-4">
           <div className="text-sm font-medium text-gray-500">
             Current Streak
           </div>
@@ -138,7 +138,7 @@ export const HabitAnalytics: React.FC<HabitAnalyticsProps> = ({ habitId }) => {
             <span className="text-sm text-gray-500 ml-1">days</span>
           </div>
         </div>
-        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4">
+        <div className="bg-linear-to-br from-purple-50 to-pink-50 rounded-lg p-4">
           <div className="text-sm font-medium text-gray-500">
             Longest Streak
           </div>

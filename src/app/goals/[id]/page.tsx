@@ -86,7 +86,7 @@ export default function GoalDetailsPage() {
           {/* Left Column - Goal Details and Progress */}
           <div className="space-y-6">
             {/* Progress Update */}
-            <div className="bg-white shadow rounded-lg p-6">
+            <div className="bg-white shadow-sm rounded-lg p-6">
               <h2 className="text-lg font-medium text-gray-900 mb-4">
                 Progress
               </h2>
@@ -98,13 +98,13 @@ export default function GoalDetailsPage() {
                   <div className="space-x-2">
                     <button
                       onClick={() => handleProgressUpdate(goal.progress - 10)}
-                      className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+                      className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 text-xs font-medium rounded-sm text-gray-700 bg-white hover:bg-gray-50"
                     >
                       -10%
                     </button>
                     <button
                       onClick={() => handleProgressUpdate(goal.progress + 10)}
-                      className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+                      className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 text-xs font-medium rounded-sm text-gray-700 bg-white hover:bg-gray-50"
                     >
                       +10%
                     </button>
@@ -120,7 +120,7 @@ export default function GoalDetailsPage() {
             </div>
 
             {/* Goal Information */}
-            <div className="bg-white shadow rounded-lg p-6">
+            <div className="bg-white shadow-sm rounded-lg p-6">
               <h2 className="text-lg font-medium text-gray-900 mb-4">
                 Details
               </h2>
@@ -191,7 +191,7 @@ export default function GoalDetailsPage() {
           {/* Right Column - Milestones and Analytics */}
           <div className="space-y-6">
             {/* Milestones */}
-            <div className="bg-white shadow rounded-lg p-6">
+            <div className="bg-white shadow-sm rounded-lg p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-medium text-gray-900">
                   Milestones
@@ -218,7 +218,7 @@ export default function GoalDetailsPage() {
                         type="text"
                         id="milestoneName"
                         required
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                         value={newMilestone.name}
                         onChange={(e) =>
                           setNewMilestone({
@@ -239,7 +239,7 @@ export default function GoalDetailsPage() {
                         type="date"
                         id="milestoneDate"
                         required
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                         value={newMilestone.targetDate}
                         onChange={(e) =>
                           setNewMilestone({
@@ -262,7 +262,7 @@ export default function GoalDetailsPage() {
                         required
                         min="0"
                         max="100"
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                         value={newMilestone.weight}
                         onChange={(e) =>
                           setNewMilestone({
@@ -300,7 +300,7 @@ export default function GoalDetailsPage() {
                           type="checkbox"
                           checked={milestone.completed}
                           onChange={() => toggleMilestone(milestone.id)}
-                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded-sm"
                         />
                         <span
                           className={`ml-3 text-sm ${

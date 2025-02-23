@@ -12,7 +12,7 @@ export function HabitCheckbox({ habit }: HabitCheckboxProps) {
     <label className="flex items-center space-x-3">
       <input
         type="checkbox"
-        className="h-6 w-6 rounded"
+        className="h-6 w-6 rounded-sm"
         checked={habit.completed}
         onChange={(e) => {
           // TODO: Update habit completion status in your state management

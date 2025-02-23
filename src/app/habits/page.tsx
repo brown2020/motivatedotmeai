@@ -47,7 +47,7 @@ export default function HabitsPage() {
           </div>
           <button
             onClick={() => setIsAddingHabit(true)}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-xs text-white bg-indigo-600 hover:bg-indigo-700"
           >
             Add Habit
           </button>
@@ -70,7 +70,7 @@ export default function HabitsPage() {
                       type="text"
                       id="name"
                       required
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                       value={newHabit.name}
                       onChange={(e) =>
                         setNewHabit({ ...newHabit, name: e.target.value })
@@ -87,7 +87,7 @@ export default function HabitsPage() {
                     <select
                       id="goalId"
                       required
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                       value={newHabit.goalId}
                       onChange={(e) =>
                         setNewHabit({ ...newHabit, goalId: e.target.value })
@@ -111,7 +111,7 @@ export default function HabitsPage() {
                     <select
                       id="frequency"
                       required
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                       value={newHabit.frequency}
                       onChange={(e) =>
                         setNewHabit({
@@ -134,7 +134,7 @@ export default function HabitsPage() {
                     <input
                       type="time"
                       id="reminderTime"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                       value={newHabit.reminderTime || ""}
                       onChange={(e) =>
                         setNewHabit({
@@ -149,13 +149,13 @@ export default function HabitsPage() {
                   <button
                     type="button"
                     onClick={() => setIsAddingHabit(false)}
-                    className="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:mt-0 sm:text-sm"
+                    className="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:mt-0 sm:text-sm"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="inline-flex w-full justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:text-sm"
+                    className="inline-flex w-full justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-base font-medium text-white shadow-xs hover:bg-indigo-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:text-sm"
                   >
                     Add Habit
                   </button>
@@ -190,7 +190,7 @@ export default function HabitsPage() {
               </p>
             </div>
           ) : (
-            <div className="bg-white shadow overflow-hidden sm:rounded-md">
+            <div className="bg-white shadow-sm overflow-hidden sm:rounded-md">
               <ul role="list" className="divide-y divide-gray-200">
                 {habits.map((habit) => {
                   const relatedGoal = goals.find((g) => g.id === habit.goalId);
@@ -214,7 +214,7 @@ export default function HabitsPage() {
                               </p>
                             )}
                           </div>
-                          <div className="ml-4 flex-shrink-0">
+                          <div className="ml-4 shrink-0">
                             <div className="flex items-center space-x-4">
                               <span
                                 className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${

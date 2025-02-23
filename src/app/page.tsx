@@ -2,18 +2,24 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function HomePage() {
   const { user, signInWithGoogle } = useAuth();
   const router = useRouter();
 
+  useEffect(() => {
+    if (user) {
+      router.push("/dashboard");
+    }
+  }, [user, router]); // Runs only when `user` or `router` changes
+
   if (user) {
-    router.push("/dashboard");
-    return null;
+    return null; // Avoid rendering while redirecting
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <main className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100">
       <div className="max-w-6xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
         <div className="text-center">
           <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
@@ -26,7 +32,7 @@ export default function HomePage() {
           <div className="mt-10 flex items-center justify-center gap-x-6">
             <button
               onClick={signInWithGoogle}
-              className="rounded-md bg-indigo-600 px-6 py-3 text-lg font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+              className="rounded-md bg-indigo-600 px-6 py-3 text-lg font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
             >
               Get Started with Google
             </button>

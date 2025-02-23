@@ -10,7 +10,7 @@ export default function Header() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   return (
-    <header className="bg-white shadow">
+    <header className="bg-white shadow-sm">
       <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 justify-between">
           <div className="flex">
@@ -45,7 +45,7 @@ export default function Header() {
             <div className="relative ml-3">
               <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="flex items-center rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                className="flex items-center rounded-full bg-white text-sm focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
               >
                 <Image
                   width={32}

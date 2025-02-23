@@ -24,10 +24,10 @@ export default function DashboardPage() {
 
         <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {/* Stats Cards */}
-          <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="bg-white overflow-hidden shadow-sm rounded-lg">
             <div className="p-5">
               <div className="flex items-center">
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                   <svg
                     className="h-6 w-6 text-gray-400"
                     fill="none"
@@ -66,10 +66,10 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="bg-white overflow-hidden shadow-sm rounded-lg">
             <div className="p-5">
               <div className="flex items-center">
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                   <svg
                     className="h-6 w-6 text-gray-400"
                     fill="none"
@@ -108,10 +108,10 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="bg-white overflow-hidden shadow-sm rounded-lg">
             <div className="p-5">
               <div className="flex items-center">
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                   <svg
                     className="h-6 w-6 text-gray-400"
                     fill="none"
@@ -149,7 +149,7 @@ export default function DashboardPage() {
         {/* Recent Activity */}
         <div className="mt-8">
           <h2 className="text-lg font-medium text-gray-900">Recent Activity</h2>
-          <div className="mt-3 bg-white shadow overflow-hidden sm:rounded-md">
+          <div className="mt-3 bg-white shadow-sm overflow-hidden sm:rounded-md">
             <ul role="list" className="divide-y divide-gray-200">
               {goals.length === 0 && habits.length === 0 ? (
                 <li className="px-4 py-4 sm:px-6">
@@ -168,7 +168,7 @@ export default function DashboardPage() {
                         <p className="text-sm font-medium text-indigo-600 truncate">
                           {goal.name}
                         </p>
-                        <div className="ml-2 flex-shrink-0 flex">
+                        <div className="ml-2 shrink-0 flex">
                           <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                             {goal.progress}% complete
                           </p>
