@@ -3,7 +3,6 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
 import { AuthProvider } from "@/context/AuthContext";
-import ProtectedRoute from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -23,9 +22,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <ErrorBoundary>
           <AuthProvider>
-            <AppProvider>
-              <ProtectedRoute>{children}</ProtectedRoute>
-            </AppProvider>
+            <AppProvider>{children}</AppProvider>
           </AuthProvider>
         </ErrorBoundary>
       </body>

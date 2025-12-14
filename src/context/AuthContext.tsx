@@ -19,7 +19,7 @@ import { auth } from "@/lib/firebase";
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: () => Promise<boolean>;
   signOut: () => Promise<void>;
 }
 
@@ -38,17 +38,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (): Promise<boolean> => {
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
+      const idToken = await auth.currentUser?.getIdToken(true);
+      if (idToken) {
+        const res = await fetch("/api/auth/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idToken }),
+        });
+        return res.ok;
+      }
+      return false;
     } catch (error) {
       console.error("Error signing in with Google:", error);
+      return false;
     }
   };
 
   const signOut = async () => {
     try {
+      await fetch("/api/auth/session", { method: "DELETE" });
       await firebaseSignOut(auth);
     } catch (error) {
       console.error("Error signing out:", error);
