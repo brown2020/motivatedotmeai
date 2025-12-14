@@ -23,17 +23,57 @@ function getNextParam(pathname: string, search: string) {
   return encodeURIComponent(raw);
 }
 
-export function proxyMiddleware(req: NextRequest) {
+async function isRequestSignedIn(req: NextRequest) {
+  const allowDevSessionBypass = process.env.ALLOW_DEV_SESSION === "1";
+
+  const hasDevSessionCookie =
+    allowDevSessionBypass &&
+    process.env.NODE_ENV !== "production" &&
+    Boolean(req.cookies.get(DEV_SESSION_COOKIE_NAME)?.value);
+  if (hasDevSessionCookie) return true;
+
+  const hasSessionCookie = Boolean(req.cookies.get(SESSION_COOKIE_NAME)?.value);
+  if (!hasSessionCookie) return false;
+
+  // Verify the session cookie server-side so stale cookies don't bypass auth.
+  const verifyUrl = req.nextUrl.clone();
+  verifyUrl.pathname = "/api/auth/verify";
+  verifyUrl.search = "";
+
+  const cookieHeader = req.headers.get("cookie") || "";
+  const res = await fetch(verifyUrl, {
+    method: "GET",
+    headers: { cookie: cookieHeader },
+    cache: "no-store",
+  });
+
+  return res.ok;
+}
+
+function clearSessionCookies(res: NextResponse) {
+  res.cookies.set(SESSION_COOKIE_NAME, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0,
+  });
+  res.cookies.set(DEV_SESSION_COOKIE_NAME, "", {
+    httpOnly: true,
+    secure: false,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0,
+  });
+}
+
+export async function proxyMiddleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
 
   // Skip all API routes (session handling happens server-side).
   if (pathname.startsWith("/api")) return NextResponse.next();
 
-  const hasSessionCookie = Boolean(req.cookies.get(SESSION_COOKIE_NAME)?.value);
-  const hasDevSessionCookie =
-    process.env.NODE_ENV !== "production" &&
-    Boolean(req.cookies.get(DEV_SESSION_COOKIE_NAME)?.value);
-  const isSignedIn = hasSessionCookie || hasDevSessionCookie;
+  const isSignedIn = await isRequestSignedIn(req);
 
   // Always allow public routes (signin, assets, etc)
   if (isPublicPath(pathname)) {
@@ -52,7 +92,10 @@ export function proxyMiddleware(req: NextRequest) {
     const url = req.nextUrl.clone();
     url.pathname = SIGN_IN_PATH;
     url.search = `?next=${getNextParam(pathname, search)}`;
-    return NextResponse.redirect(url);
+    const res = NextResponse.redirect(url);
+    // Clear any stale cookies so subsequent requests don't bypass.
+    clearSessionCookies(res);
+    return res;
   }
 
   return NextResponse.next();

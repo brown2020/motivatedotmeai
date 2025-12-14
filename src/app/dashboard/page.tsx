@@ -1,11 +1,61 @@
 "use client";
 
 import Header from "@/components/Header";
-import { useApp } from "@/context/AppContext";
+import { useAppStore } from "@/stores/app-store";
 import Link from "next/link";
+import { useMemo } from "react";
 
 export default function DashboardPage() {
-  const { goals, habits } = useApp();
+  const goals = useAppStore((s) => s.goals);
+  const habits = useAppStore((s) => s.habits);
+
+  const currentStreakDays = useMemo(() => {
+    const all = habits.flatMap((h) => h.completions.map((d) => new Date(d)));
+    if (all.length === 0) return 0;
+
+    const byDay = new Set(
+      all.map((d) =>
+        new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+      )
+    );
+
+    let streak = 0;
+    const cursor = new Date();
+    cursor.setHours(0, 0, 0, 0);
+
+    while (byDay.has(cursor.getTime())) {
+      streak += 1;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+
+    return streak;
+  }, [habits]);
+
+  const recentActivity = useMemo(() => {
+    const goalItems = goals.map((g) => ({
+      type: "goal" as const,
+      id: g.id,
+      title: g.name,
+      subtitle: `${g.progress}% complete`,
+      ts: new Date(g.lastUpdated || g.endDate).getTime(),
+      href: `/goals/${g.id}`,
+    }));
+
+    const habitItems = habits.flatMap((h) =>
+      h.completions.map((d) => ({
+        type: "habit" as const,
+        id: `${h.id}:${new Date(d).getTime()}`,
+        title: h.name,
+        subtitle: `Completed ${new Date(d).toLocaleDateString()}`,
+        ts: new Date(d).getTime(),
+        href: `/habits/${h.id}`,
+      }))
+    );
+
+    return [...goalItems, ...habitItems]
+      .sort((a, b) => b.ts - a.ts)
+      .slice(0, 10);
+  }, [goals, habits]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -133,7 +183,8 @@ export default function DashboardPage() {
                     </dt>
                     <dd className="flex items-baseline">
                       <div className="text-2xl font-semibold text-gray-900">
-                        7 days
+                        {currentStreakDays}{" "}
+                        {currentStreakDays === 1 ? "day" : "days"}
                       </div>
                     </dd>
                   </dl>
@@ -151,7 +202,7 @@ export default function DashboardPage() {
           <h2 className="text-lg font-medium text-gray-900">Recent Activity</h2>
           <div className="mt-3 bg-white shadow-sm overflow-hidden sm:rounded-md">
             <ul role="list" className="divide-y divide-gray-200">
-              {goals.length === 0 && habits.length === 0 ? (
+              {recentActivity.length === 0 ? (
                 <li className="px-4 py-4 sm:px-6">
                   <div className="text-center text-gray-500">
                     <p>No recent activity</p>
@@ -161,22 +212,22 @@ export default function DashboardPage() {
                   </div>
                 </li>
               ) : (
-                <>
-                  {goals.map((goal) => (
-                    <li key={goal.id} className="px-4 py-4 sm:px-6">
-                      <div className="flex items-center justify-between">
+                recentActivity.map((item) => (
+                  <li key={item.id} className="px-4 py-4 sm:px-6">
+                    <Link href={item.href} className="block hover:underline">
+                      <div className="flex items-center justify-between gap-4">
                         <p className="text-sm font-medium text-indigo-600 truncate">
-                          {goal.name}
+                          {item.title}
                         </p>
                         <div className="ml-2 shrink-0 flex">
-                          <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                            {goal.progress}% complete
+                          <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                            {item.subtitle}
                           </p>
                         </div>
                       </div>
-                    </li>
-                  ))}
-                </>
+                    </Link>
+                  </li>
+                ))
               )}
             </ul>
           </div>

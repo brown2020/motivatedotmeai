@@ -1,8 +1,10 @@
 "use client";
 
 import Header from "@/components/Header";
-import { useApp } from "@/context/AppContext";
+import { useAppStore } from "@/stores/app-store";
 import { useState } from "react";
+import Link from "next/link";
+import HabitCheckbox from "@/components/ui/HabitCheckbox";
 
 interface NewHabitForm {
   name: string;
@@ -12,7 +14,10 @@ interface NewHabitForm {
 }
 
 export default function HabitsPage() {
-  const { habits, goals, addHabit } = useApp();
+  const habits = useAppStore((s) => s.habits);
+  const goals = useAppStore((s) => s.goals);
+  const addHabit = useAppStore((s) => s.addHabit);
+  const deleteHabit = useAppStore((s) => s.deleteHabit);
   const [isAddingHabit, setIsAddingHabit] = useState(false);
   const [newHabit, setNewHabit] = useState<NewHabitForm>({
     name: "",
@@ -22,7 +27,7 @@ export default function HabitsPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    addHabit(newHabit);
+    void addHabit(newHabit);
     setIsAddingHabit(false);
     setNewHabit({
       name: "",
@@ -203,19 +208,20 @@ export default function HabitsPage() {
                   return (
                     <li key={habit.id}>
                       <div className="px-4 py-4 sm:px-6">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between gap-6">
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-lg font-medium text-indigo-600 truncate">
+                            <Link
+                              href={`/habits/${habit.id}`}
+                              className="text-lg font-medium text-indigo-600 truncate hover:underline"
+                            >
                               {habit.name}
-                            </h3>
+                            </Link>
                             {relatedGoal && (
                               <p className="mt-1 text-sm text-gray-500">
                                 Goal: {relatedGoal.name}
                               </p>
                             )}
-                          </div>
-                          <div className="ml-4 shrink-0">
-                            <div className="flex items-center space-x-4">
+                            <div className="mt-2 flex items-center space-x-4">
                               <span
                                 className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                   completedToday
@@ -231,6 +237,26 @@ export default function HabitsPage() {
                                 {habit.frequency}
                               </span>
                             </div>
+                          </div>
+
+                          <div className="shrink-0 flex items-center gap-3">
+                            <button
+                              onClick={async () => {
+                                const ok = window.confirm(
+                                  `Delete habit \"${habit.name}\"?`
+                                );
+                                if (!ok) return;
+                                await deleteHabit(habit.id);
+                              }}
+                              className="rounded-md bg-white px-3 py-1.5 text-sm font-medium text-red-700 shadow-xs ring-1 ring-red-200 hover:bg-red-50"
+                            >
+                              Delete
+                            </button>
+                            <HabitCheckbox
+                              habitId={habit.id}
+                              name="Done"
+                              completed={completedToday}
+                            />
                           </div>
                         </div>
                       </div>

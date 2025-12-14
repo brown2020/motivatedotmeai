@@ -1,10 +1,13 @@
 "use client";
 
-import { useAuth } from "@/context/AuthContext";
+import { useAuthStore } from "@/stores/auth-store";
 import { useRouter } from "next/navigation";
 
 export default function SignInClient({ nextPath }: { nextPath?: string }) {
-  const { user, loading, signInWithGoogle, signOut } = useAuth();
+  const user = useAuthStore((s) => s.user);
+  const isLoading = useAuthStore((s) => s.isLoading);
+  const signInWithGoogle = useAuthStore((s) => s.signInWithGoogle);
+  const signOut = useAuthStore((s) => s.signOut);
   const router = useRouter();
 
   const target = nextPath || "/dashboard";
@@ -14,7 +17,7 @@ export default function SignInClient({ nextPath }: { nextPath?: string }) {
     if (ok || user) router.push(target);
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <main className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100" />
     );

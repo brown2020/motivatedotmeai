@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
         hostname: "www.gravatar.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "firebasestorage.googleapis.com",
+        pathname: "/**",
+      },
     ],
   },
 };

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { useApp } from "@/context/AppContext";
+import { useAppStore } from "@/stores/app-store";
 import { LoadingSpinner } from "./LoadingSpinner";
 import { ErrorAlert } from "./ErrorAlert";
 
@@ -29,7 +29,10 @@ const DAYS_OF_WEEK = [
 ];
 
 export const HabitAnalytics: React.FC<HabitAnalyticsProps> = ({ habitId }) => {
-  const { habits, loading, error, clearError } = useApp();
+  const habits = useAppStore((s) => s.habits);
+  const loading = useAppStore((s) => s.loading);
+  const error = useAppStore((s) => s.error);
+  const clearError = useAppStore((s) => s.clearError);
   const habit = habits.find((h) => h.id === habitId);
 
   const stats = useMemo(() => {

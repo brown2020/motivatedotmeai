@@ -9,6 +9,7 @@ const SESSION_EXPIRES_IN_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
 export async function POST(req: Request) {
   const isAdminConfigured = Boolean(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
   const isProd = process.env.NODE_ENV === "production";
+  const allowDevSessionBypass = process.env.ALLOW_DEV_SESSION === "1";
 
   if (!isAdminConfigured && isProd) {
     return NextResponse.json(
@@ -35,6 +36,17 @@ export async function POST(req: Request) {
 
   // Dev fallback: allow a dev-only cookie so local development isn't blocked.
   if (!isAdminConfigured && !isProd) {
+    if (!allowDevSessionBypass) {
+      return NextResponse.json(
+        {
+          error:
+            "Dev session bypass disabled. Set FIREBASE_SERVICE_ACCOUNT_KEY for real session cookies, or set ALLOW_DEV_SESSION=1 to re-enable the dev bypass.",
+          code: "DEV_SESSION_DISABLED",
+        },
+        { status: 501 }
+      );
+    }
+
     const jar = await cookies();
     jar.set(DEV_SESSION_COOKIE_NAME, "1", {
       httpOnly: true,

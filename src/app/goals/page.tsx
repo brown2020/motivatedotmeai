@@ -1,13 +1,15 @@
 "use client";
 
 import Header from "@/components/Header";
-import { useApp } from "@/context/AppContext";
+import { useAppStore } from "@/stores/app-store";
 import { useState } from "react";
 import Link from "next/link";
 import { NewGoalForm, GoalCategory, GoalPriority } from "@/types/goals";
 
 export default function GoalsPage() {
-  const { goals, addGoal } = useApp();
+  const goals = useAppStore((s) => s.goals);
+  const addGoal = useAppStore((s) => s.addGoal);
+  const deleteGoal = useAppStore((s) => s.deleteGoal);
   const [isAddingGoal, setIsAddingGoal] = useState(false);
   const [newGoal, setNewGoal] = useState<NewGoalForm>({
     name: "",
@@ -25,7 +27,7 @@ export default function GoalsPage() {
     const endDate = new Date(newGoal.endDate);
     const status = endDate < now ? "overdue" : "not_started";
 
-    addGoal({
+    void addGoal({
       name: newGoal.name,
       reason: newGoal.reason,
       endDate: endDate,
@@ -288,81 +290,82 @@ export default function GoalsPage() {
               <ul role="list" className="divide-y divide-gray-200">
                 {goals.map((goal) => (
                   <li key={goal.id}>
-                    <Link
-                      href={`/goals/${goal.id}`}
-                      className="block hover:bg-gray-50"
-                    >
-                      <div className="px-4 py-4 sm:px-6">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-lg font-medium text-indigo-600 truncate">
-                              {goal.name}
-                            </h3>
-                            <p className="mt-1 text-sm text-gray-500">
-                              {goal.reason}
-                            </p>
-                            <div className="mt-2 flex items-center space-x-2">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize bg-gray-100 text-gray-800">
-                                {goal.category}
-                              </span>
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize bg-gray-100 text-gray-800">
-                                {goal.priority} priority
-                              </span>
-                              {goal.tags?.map((tag) => (
-                                <span
-                                  key={tag}
-                                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
-                                >
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                          <div className="ml-4 shrink-0">
-                            <div className="flex flex-col items-end space-y-2">
+                    <div className="px-4 py-4 sm:px-6 hover:bg-gray-50">
+                      <div className="flex items-start justify-between gap-4">
+                        <Link
+                          href={`/goals/${goal.id}`}
+                          className="flex-1 min-w-0"
+                        >
+                          <h3 className="text-lg font-medium text-indigo-600 truncate hover:underline">
+                            {goal.name}
+                          </h3>
+                          <p className="mt-1 text-sm text-gray-500">
+                            {goal.reason}
+                          </p>
+                          <div className="mt-2 flex items-center space-x-2">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize bg-gray-100 text-gray-800">
+                              {goal.category}
+                            </span>
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize bg-gray-100 text-gray-800">
+                              {goal.priority} priority
+                            </span>
+                            {goal.tags?.map((tag) => (
                               <span
-                                className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                  goal.progress >= 100
-                                    ? "bg-green-100 text-green-800"
-                                    : goal.progress >= 50
-                                    ? "bg-blue-100 text-blue-800"
-                                    : "bg-yellow-100 text-yellow-800"
-                                }`}
+                                key={tag}
+                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
                               >
-                                {goal.progress}% complete
+                                {tag}
                               </span>
-                              <span className="text-sm text-gray-500">
-                                Due{" "}
-                                {new Date(goal.endDate).toLocaleDateString()}
-                              </span>
-                              {goal.milestones.length > 0 && (
-                                <span className="text-sm text-gray-500">
-                                  {
-                                    goal.milestones.filter((m) => m.completed)
-                                      .length
-                                  }
-                                  /{goal.milestones.length} milestones completed
-                                </span>
-                              )}
-                            </div>
+                            ))}
                           </div>
-                        </div>
-                        <div className="mt-2">
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div
-                              className={`h-2 rounded-full transition-all duration-300 ${
-                                goal.progress >= 100
-                                  ? "bg-green-500"
-                                  : goal.progress >= 50
-                                  ? "bg-blue-500"
-                                  : "bg-yellow-500"
-                              }`}
-                              style={{ width: `${goal.progress}%` }}
-                            />
-                          </div>
+                        </Link>
+
+                        <div className="shrink-0 flex flex-col items-end gap-2">
+                          <button
+                            onClick={async () => {
+                              const ok = window.confirm(
+                                `Delete goal \"${goal.name}\"?`
+                              );
+                              if (!ok) return;
+                              await deleteGoal(goal.id);
+                            }}
+                            className="rounded-md bg-white px-3 py-1.5 text-sm font-medium text-red-700 shadow-xs ring-1 ring-red-200 hover:bg-red-50"
+                          >
+                            Delete
+                          </button>
+
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              goal.progress >= 100
+                                ? "bg-green-100 text-green-800"
+                                : goal.progress >= 50
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-yellow-100 text-yellow-800"
+                            }`}
+                          >
+                            {goal.progress}% complete
+                          </span>
+                          <span className="text-sm text-gray-500">
+                            Due {new Date(goal.endDate).toLocaleDateString()}
+                          </span>
                         </div>
                       </div>
-                    </Link>
+
+                      <div className="mt-2">
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full transition-all duration-300 ${
+                              goal.progress >= 100
+                                ? "bg-green-500"
+                                : goal.progress >= 50
+                                ? "bg-blue-500"
+                                : "bg-yellow-500"
+                            }`}
+                            style={{ width: `${goal.progress}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </li>
                 ))}
               </ul>

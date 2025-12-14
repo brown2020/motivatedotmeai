@@ -1,13 +1,21 @@
 "use client";
 
-import { useAuth } from "@/context/AuthContext";
+import { useAuthStore } from "@/stores/auth-store";
+import { useAppStore } from "@/stores/app-store";
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 
 export default function Header() {
-  const { user, signOut } = useAuth();
+  const user = useAuthStore((s) => s.user);
+  const signOut = useAuthStore((s) => s.signOut);
+  const profilePhotoURL = useAppStore((s) => s.user?.profilePhotoURL);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  const avatarSrc =
+    profilePhotoURL ||
+    user?.photoURL ||
+    "https://www.gravatar.com/avatar/?d=mp";
 
   return (
     <header className="bg-white shadow-sm">
@@ -38,6 +46,12 @@ export default function Header() {
               >
                 Habits
               </Link>
+              <Link
+                href="/profile"
+                className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium"
+              >
+                Profile
+              </Link>
             </div>
           </div>
 
@@ -51,9 +65,7 @@ export default function Header() {
                   width={32}
                   height={32}
                   className="rounded-full"
-                  src={
-                    user?.photoURL || "https://www.gravatar.com/avatar/?d=mp"
-                  }
+                  src={avatarSrc}
                   alt={user?.displayName || "User"}
                 />
               </button>
@@ -66,6 +78,13 @@ export default function Header() {
                   <div className="px-4 py-2 text-sm text-gray-700">
                     {user?.email}
                   </div>
+                  <Link
+                    href="/profile"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setIsProfileOpen(false)}
+                  >
+                    Profile
+                  </Link>
                   <button
                     onClick={signOut}
                     className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"

@@ -15,6 +15,8 @@ import {
   where,
   addDoc,
   updateDoc,
+  setDoc,
+  deleteDoc,
   doc,
   onSnapshot,
   Timestamp,
@@ -49,6 +51,7 @@ interface FirestoreHabit extends Omit<Habit, "completions"> {
 }
 
 interface User {
+  userId?: string;
   onboardingComplete: boolean;
   preferences: {
     darkMode: boolean;
@@ -77,10 +80,12 @@ interface AppContextType {
   clearError: () => void;
   addGoal: (goal: Omit<Goal, "id" | "userId">) => Promise<void>;
   updateGoal: (goal: Goal) => Promise<void>;
+  deleteGoal: (goalId: string) => Promise<void>;
   addHabit: (
     habit: Omit<Habit, "id" | "completions" | "userId">
   ) => Promise<void>;
-  completeHabit: (habitId: string) => Promise<void>;
+  deleteHabit: (habitId: string) => Promise<void>;
+  toggleHabitCompletionToday: (habitId: string) => Promise<void>;
   updateGoalProgress: (goalId: string, progress: number) => Promise<void>;
   completeMilestone: (goalId: string, milestoneId: string) => Promise<void>;
   setUserPreferences: (preferences: User["preferences"]) => Promise<void>;
@@ -205,22 +210,37 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   // Subscribe to user's preferences
   useEffect(() => {
     if (!authUser?.uid) {
+      setUser(null);
       setLoading((prev) => ({ ...prev, user: false }));
       return;
     }
 
     setLoading((prev) => ({ ...prev, user: true }));
-    const q = query(
-      collection(db, "users"),
-      where("userId", "==", authUser.uid)
-    );
+    const userRef = doc(db, "users", authUser.uid);
+
+    // Ensure the user's profile/preferences doc exists.
+    // We keep `userId` inside the document for easier querying/auditing.
+    setDoc(
+      userRef,
+      {
+        userId: authUser.uid,
+        onboardingComplete: false,
+        preferences: {
+          darkMode: false,
+          notifications: true,
+          reminderTimes: [],
+        },
+      } satisfies User,
+      { merge: true }
+    ).catch((error) => handleFirestoreError(error as FirestoreError, "user"));
 
     const unsubscribe = onSnapshot(
-      q,
+      userRef,
       (snapshot) => {
-        if (!snapshot.empty) {
-          const userData = snapshot.docs[0].data() as User;
-          setUser(userData);
+        if (snapshot.exists()) {
+          setUser(snapshot.data() as User);
+        } else {
+          setUser(null);
         }
         setLoading((prev) => ({ ...prev, user: false }));
       },
@@ -229,6 +249,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     return () => unsubscribe();
   }, [authUser?.uid]);
+
+  // Sync dark mode preference to the documentElement class.
+  useEffect(() => {
+    const prefersDark = user?.preferences?.darkMode === true;
+    document.documentElement.classList.toggle("dark", prefersDark);
+  }, [user?.preferences?.darkMode]);
 
   const addGoal = async (goalData: Omit<Goal, "id" | "userId">) => {
     if (!authUser?.uid) return;
@@ -255,9 +281,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     if (!authUser?.uid) return;
 
     try {
-      const goalRef = doc(db, "goals", goalData.id);
+      const { id: goalId, ...goalWithoutId } = goalData;
+      const goalRef = doc(db, "goals", goalId);
       const updatedGoal: Omit<FirestoreGoal, "id"> = {
-        ...goalData,
+        ...goalWithoutId,
         userId: authUser.uid,
         endDate: Timestamp.fromDate(goalData.endDate),
         milestones: goalData.milestones.map((m) => ({
@@ -291,7 +318,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const completeHabit = async (habitId: string) => {
+  const isSameLocalDay = (a: Date, b: Date) => {
+    return (
+      a.getFullYear() === b.getFullYear() &&
+      a.getMonth() === b.getMonth() &&
+      a.getDate() === b.getDate()
+    );
+  };
+
+  const toggleHabitCompletionToday = async (habitId: string) => {
     if (!authUser?.uid) return;
 
     try {
@@ -299,12 +334,41 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       const habit = habits.find((h) => h.id === habitId);
       if (!habit) throw new Error("Habit not found");
 
+      const now = new Date();
+      const alreadyCompletedToday = habit.completions.some((d) =>
+        isSameLocalDay(d, now)
+      );
+
+      const nextCompletions = alreadyCompletedToday
+        ? habit.completions.filter((d) => !isSameLocalDay(d, now))
+        : [...habit.completions, now];
+
       await updateDoc(habitRef, {
-        completions: [
-          ...habit.completions.map((d) => Timestamp.fromDate(d)),
-          Timestamp.now(),
-        ],
+        completions: nextCompletions.map((d) => Timestamp.fromDate(d)),
+        updatedAt: Timestamp.now(),
       });
+    } catch (error) {
+      handleFirestoreError(error as FirestoreError, "operation");
+      throw error;
+    }
+  };
+
+  const deleteHabit = async (habitId: string) => {
+    if (!authUser?.uid) return;
+
+    try {
+      await deleteDoc(doc(db, "habits", habitId));
+    } catch (error) {
+      handleFirestoreError(error as FirestoreError, "operation");
+      throw error;
+    }
+  };
+
+  const deleteGoal = async (goalId: string) => {
+    if (!authUser?.uid) return;
+
+    try {
+      await deleteDoc(doc(db, "goals", goalId));
     } catch (error) {
       handleFirestoreError(error as FirestoreError, "operation");
       throw error;
@@ -354,7 +418,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       const userRef = doc(db, "users", authUser.uid);
-      await updateDoc(userRef, { preferences });
+      await setDoc(userRef, { preferences }, { merge: true });
     } catch (error) {
       handleFirestoreError(error as FirestoreError, "operation");
       throw error;
@@ -475,8 +539,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         clearError,
         addGoal,
         updateGoal,
+        deleteGoal,
         addHabit,
-        completeHabit,
+        deleteHabit,
+        toggleHabitCompletionToday,
         updateGoalProgress,
         completeMilestone,
         setUserPreferences,

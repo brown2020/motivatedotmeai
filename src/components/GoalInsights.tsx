@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useApp } from "@/context/AppContext";
+import { useAppStore } from "@/stores/app-store";
 import { LoadingSpinner } from "./LoadingSpinner";
 import { ErrorAlert } from "./ErrorAlert";
 
@@ -10,7 +10,11 @@ interface GoalInsightsProps {
 }
 
 export const GoalInsights: React.FC<GoalInsightsProps> = ({ goalId }) => {
-  const { goals, loading, error, clearError, getGoalInsights } = useApp();
+  const goals = useAppStore((s) => s.goals);
+  const loading = useAppStore((s) => s.loading);
+  const error = useAppStore((s) => s.error);
+  const clearError = useAppStore((s) => s.clearError);
+  const getGoalInsights = useAppStore((s) => s.getGoalInsights);
   const goal = goals.find((g) => g.id === goalId);
 
   if (loading.goals) {

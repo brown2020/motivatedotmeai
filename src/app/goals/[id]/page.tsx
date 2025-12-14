@@ -1,19 +1,24 @@
 "use client";
 
-import { useApp } from "@/context/AppContext";
-import { useParams } from "next/navigation";
+import { useAppStore } from "@/stores/app-store";
+import { useParams, useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import { GoalInsights } from "@/components/GoalInsights";
+import { GoalAiCoach } from "@/components/GoalAiCoach";
 import { useState } from "react";
 import { Milestone } from "@/types/goals";
 
 export default function GoalDetailsPage() {
-  const { goals, updateGoal } = useApp();
+  const goals = useAppStore((s) => s.goals);
+  const updateGoal = useAppStore((s) => s.updateGoal);
+  const deleteGoal = useAppStore((s) => s.deleteGoal);
   const params = useParams();
+  const router = useRouter();
   const goalId = params.id as string;
   const goal = goals.find((g) => g.id === goalId);
 
   const [isEditingMilestone, setIsEditingMilestone] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [newMilestone, setNewMilestone] = useState({
     name: "",
     targetDate: "",
@@ -36,7 +41,7 @@ export default function GoalDetailsPage() {
   }
 
   const handleProgressUpdate = (newProgress: number) => {
-    updateGoal({
+    void updateGoal({
       ...goal,
       progress: Math.min(100, Math.max(0, newProgress)),
       lastUpdated: new Date(),
@@ -46,13 +51,13 @@ export default function GoalDetailsPage() {
   const handleAddMilestone = (e: React.FormEvent) => {
     e.preventDefault();
     const milestone: Milestone = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       name: newMilestone.name,
       targetDate: new Date(newMilestone.targetDate),
       completed: false,
       weight: newMilestone.weight || 0,
     };
-    updateGoal({
+    void updateGoal({
       ...goal,
       milestones: [...goal.milestones, milestone],
       lastUpdated: new Date(),
@@ -65,11 +70,22 @@ export default function GoalDetailsPage() {
     const updatedMilestones = goal.milestones.map((m) =>
       m.id === milestoneId ? { ...m, completed: !m.completed } : m
     );
-    updateGoal({
+    void updateGoal({
       ...goal,
       milestones: updatedMilestones,
       lastUpdated: new Date(),
     });
+  };
+
+  const handleDeleteGoal = async () => {
+    if (!goal) return;
+    setIsDeleting(true);
+    try {
+      await deleteGoal(goal.id);
+      router.push("/goals");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -78,8 +94,21 @@ export default function GoalDetailsPage() {
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 sm:px-0">
-          <h1 className="text-2xl font-semibold text-gray-900">{goal.name}</h1>
-          <p className="mt-1 text-sm text-gray-600">{goal.reason}</p>
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-semibold text-gray-900 truncate">
+                {goal.name}
+              </h1>
+              <p className="mt-1 text-sm text-gray-600">{goal.reason}</p>
+            </div>
+            <button
+              onClick={handleDeleteGoal}
+              disabled={isDeleting}
+              className="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium shadow-xs bg-white text-red-700 ring-1 ring-red-200 hover:bg-red-50"
+            >
+              {isDeleting ? "Deleting…" : "Delete goal"}
+            </button>
+          </div>
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -326,6 +355,9 @@ export default function GoalDetailsPage() {
 
             {/* Goal Insights */}
             <GoalInsights goalId={goalId} />
+
+            {/* AI Coach */}
+            <GoalAiCoach goalId={goalId} />
           </div>
         </div>
       </main>
