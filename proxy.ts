@@ -5,7 +5,13 @@ const DEV_SESSION_COOKIE_NAME = "__dev_session";
 
 const SIGN_IN_PATH = "/signin";
 
-const PROTECTED_PREFIXES = ["/dashboard", "/goals", "/habits", "/profile"];
+const PROTECTED_PREFIXES = [
+  "/dashboard",
+  "/goals",
+  "/habits",
+  "/tracker",
+  "/profile",
+];
 const PUBLIC_PREFIXES = [SIGN_IN_PATH];
 
 function isProtectedPath(pathname: string) {

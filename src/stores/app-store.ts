@@ -6,11 +6,15 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
+  getDocs,
   onSnapshot,
   query,
   setDoc,
   updateDoc,
   writeBatch,
+  orderBy,
+  limit as limitQuery,
   where,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -39,6 +43,17 @@ interface UserDoc {
     notifications: boolean;
     reminderTimes: string[];
   };
+}
+
+export interface DailyLog {
+  dateKey: string; // YYYY-MM-DD
+  date: Date; // midnight local
+  mood?: number; // 1-5
+  energy?: number; // 1-5
+  weightKg?: number;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 interface LoadingState {
@@ -78,6 +93,8 @@ interface AppState {
   user: UserDoc | null;
   loading: LoadingState;
   error: ErrorState | null;
+  dailyLogsByDateKey: Record<string, DailyLog | null | undefined>;
+  recentDailyLogs: DailyLog[];
 
   clearError: () => void;
 
@@ -108,6 +125,13 @@ interface AppState {
     nextMilestone?: Milestone;
   };
 
+  loadDailyLog: (dateKey: string) => Promise<void>;
+  saveDailyLog: (
+    dateKey: string,
+    patch: Omit<DailyLog, "dateKey" | "createdAt" | "updatedAt" | "date">
+  ) => Promise<void>;
+  loadRecentDailyLogs: (max: number) => Promise<void>;
+
   _uid: string | null;
   _unsubs: Unsub[];
 }
@@ -134,6 +158,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   user: null,
   loading: DEFAULT_LOADING,
   error: null,
+  dailyLogsByDateKey: {},
+  recentDailyLogs: [],
 
   _uid: null,
   _unsubs: [],
@@ -154,6 +180,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       habits: [],
       user: null,
       error: null,
+      dailyLogsByDateKey: {},
+      recentDailyLogs: [],
       loading: {
         goals: Boolean(uid),
         habits: Boolean(uid),
@@ -616,5 +644,131 @@ export const useAppStore = create<AppState>((set, get) => ({
       isOnTrack,
       nextMilestone,
     };
+  },
+
+  loadDailyLog: async (dateKey) => {
+    const uid = get()._uid;
+    if (!uid) return;
+
+    try {
+      const logRef = doc(db, "users", uid, "dailyLogs", dateKey);
+      const snap = await getDoc(logRef);
+      if (!snap.exists()) {
+        set((prev) => ({
+          dailyLogsByDateKey: { ...prev.dailyLogsByDateKey, [dateKey]: null },
+        }));
+        return;
+      }
+
+      const data = snap.data() as {
+        dateKey: string;
+        date: Timestamp;
+        mood?: number;
+        energy?: number;
+        weightKg?: number;
+        notes?: string;
+        createdAt: Timestamp;
+        updatedAt: Timestamp;
+      };
+
+      const log: DailyLog = {
+        dateKey,
+        date: data.date.toDate(),
+        mood: data.mood,
+        energy: data.energy,
+        weightKg: data.weightKg,
+        notes: data.notes,
+        createdAt: data.createdAt.toDate(),
+        updatedAt: data.updatedAt.toDate(),
+      };
+
+      set((prev) => ({
+        dailyLogsByDateKey: { ...prev.dailyLogsByDateKey, [dateKey]: log },
+      }));
+    } catch (error) {
+      const e = error as FirestoreError;
+      console.error("Firestore error (operation):", e);
+      set({ error: { type: "operation", message: e.message } });
+      throw error;
+    }
+  },
+
+  saveDailyLog: async (dateKey, patch) => {
+    const uid = get()._uid;
+    if (!uid) return;
+
+    const [y, m, d] = dateKey.split("-").map((n) => Number(n));
+    const date = new Date(y, (m || 1) - 1, d || 1);
+    date.setHours(0, 0, 0, 0);
+
+    try {
+      const logRef = doc(db, "users", uid, "dailyLogs", dateKey);
+      const existing = get().dailyLogsByDateKey[dateKey];
+      const now = Timestamp.now();
+
+      const data = omitUndefined({
+        dateKey,
+        date: Timestamp.fromDate(date),
+        ...patch,
+        createdAt:
+          existing && existing !== null
+            ? Timestamp.fromDate(existing.createdAt)
+            : now,
+        updatedAt: now,
+      });
+
+      await setDoc(logRef, data, { merge: true });
+      await get().loadDailyLog(dateKey);
+    } catch (error) {
+      const e = error as FirestoreError;
+      console.error("Firestore error (operation):", e);
+      set({ error: { type: "operation", message: e.message } });
+      throw error;
+    }
+  },
+
+  loadRecentDailyLogs: async (max) => {
+    const uid = get()._uid;
+    if (!uid) return;
+
+    try {
+      const q = query(
+        collection(db, "users", uid, "dailyLogs"),
+        orderBy("date", "desc"),
+        limitQuery(max)
+      );
+
+      const snap = await getDocs(q);
+      const logs: DailyLog[] = [];
+      snap.forEach((docSnap) => {
+        const data = docSnap.data() as {
+          dateKey: string;
+          date: Timestamp;
+          mood?: number;
+          energy?: number;
+          weightKg?: number;
+          notes?: string;
+          createdAt: Timestamp;
+          updatedAt: Timestamp;
+        };
+        logs.push({
+          dateKey: data.dateKey,
+          date: data.date.toDate(),
+          mood: data.mood,
+          energy: data.energy,
+          weightKg: data.weightKg,
+          notes: data.notes,
+          createdAt: data.createdAt.toDate(),
+          updatedAt: data.updatedAt.toDate(),
+        });
+      });
+
+      set({ recentDailyLogs: logs });
+    } catch (error) {
+      const e = error as FirestoreError;
+      console.error("Firestore error (operation):", e);
+      set({ error: { type: "operation", message: e.message } });
+      throw error;
+    }
   },
 }));

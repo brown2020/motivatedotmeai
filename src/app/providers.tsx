@@ -33,7 +33,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
     if (isAuthLoading) return;
     if (uid) return;
 
-    const protectedPrefixes = ["/dashboard", "/goals", "/habits", "/profile"];
+    const protectedPrefixes = [
+      "/dashboard",
+      "/goals",
+      "/habits",
+      "/tracker",
+      "/profile",
+    ];
     const isProtected = protectedPrefixes.some((p) => pathname.startsWith(p));
     if (!isProtected) return;
 

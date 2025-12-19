@@ -49,6 +49,12 @@ service cloud.firestore {
       allow update: if isAuthenticated() && docId == request.auth.uid;
       allow delete: if isAuthenticated() && docId == request.auth.uid;
     }
+
+    // Daily logs are stored as a subcollection under the user doc:
+    // /users/{uid}/dailyLogs/{dateKey}
+    match /users/{userId}/dailyLogs/{dateKey} {
+      allow read, create, update, delete: if isAuthenticated() && userId == request.auth.uid;
+    }
     
     // Deny all other access by default
     match /{document=**} {
