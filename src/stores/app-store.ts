@@ -10,10 +10,15 @@ import {
   query,
   setDoc,
   updateDoc,
+  writeBatch,
   where,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Goal, Milestone } from "@/types/goals";
+import {
+  QUICKSTART_TEMPLATES,
+  buildQuickstartGoalAndHabits,
+} from "@/lib/quickstart-templates";
 
 interface Habit {
   id: string;
@@ -81,6 +86,7 @@ interface AppState {
   addGoal: (goal: Omit<Goal, "id" | "userId">) => Promise<void>;
   updateGoal: (goal: Goal) => Promise<void>;
   deleteGoal: (goalId: string) => Promise<void>;
+  applyQuickstartTemplate: (templateId: string) => Promise<{ goalId: string }>;
 
   addHabit: (
     habit: Omit<Habit, "id" | "completions" | "userId">
@@ -113,6 +119,14 @@ const isSameLocalDay = (a: Date, b: Date) => {
     a.getDate() === b.getDate()
   );
 };
+
+function omitUndefined<T extends Record<string, unknown>>(obj: T) {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (v !== undefined) out[k] = v;
+  }
+  return out as Omit<T, never>;
+}
 
 export const useAppStore = create<AppState>((set, get) => ({
   goals: [],
@@ -254,7 +268,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!uid) return;
 
     try {
-      const newGoal: Omit<FirestoreGoal, "id"> = {
+      const newGoal = omitUndefined({
         ...goalData,
         userId: uid,
         endDate: Timestamp.fromDate(goalData.endDate),
@@ -263,7 +277,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           targetDate: Timestamp.fromDate(m.targetDate),
         })),
         lastUpdated: Timestamp.fromDate(goalData.lastUpdated),
-      };
+      }) as Omit<FirestoreGoal, "id">;
 
       await addDoc(collection(db, "goals"), newGoal);
     } catch (error) {
@@ -281,7 +295,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       const { id: goalId, ...goalWithoutId } = goalData;
       const goalRef = doc(db, "goals", goalId);
 
-      const updatedGoal: Omit<FirestoreGoal, "id"> = {
+      const updatedGoal = omitUndefined({
         ...goalWithoutId,
         userId: uid,
         endDate: Timestamp.fromDate(goalData.endDate),
@@ -290,7 +304,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           targetDate: Timestamp.fromDate(m.targetDate),
         })),
         lastUpdated: Timestamp.fromDate(goalData.lastUpdated),
-      };
+      }) as Omit<FirestoreGoal, "id">;
 
       await updateDoc(goalRef, updatedGoal);
     } catch (error) {
@@ -313,17 +327,77 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
+  applyQuickstartTemplate: async (templateId) => {
+    const uid = get()._uid;
+    if (!uid) throw new Error("Not signed in");
+
+    const template = QUICKSTART_TEMPLATES.find((t) => t.id === templateId);
+    if (!template) throw new Error("Unknown template");
+
+    try {
+      const { goal, habits } = buildQuickstartGoalAndHabits(template);
+
+      const batch = writeBatch(db);
+
+      const goalRef = doc(collection(db, "goals"));
+      batch.set(
+        goalRef,
+        omitUndefined({
+          ...goal,
+          userId: uid,
+          endDate: Timestamp.fromDate(goal.endDate),
+          milestones: goal.milestones.map((m) => ({
+            ...m,
+            targetDate: Timestamp.fromDate(m.targetDate),
+          })),
+          lastUpdated: Timestamp.fromDate(goal.lastUpdated),
+        }) as Record<string, unknown>
+      );
+
+      for (const habit of habits) {
+        const habitRef = doc(collection(db, "habits"));
+        batch.set(
+          habitRef,
+          omitUndefined({
+            ...habit,
+            userId: uid,
+            goalId: goalRef.id,
+            completions: [],
+            createdAt: Timestamp.now(),
+          }) as Record<string, unknown>
+        );
+      }
+
+      batch.set(
+        doc(db, "users", uid),
+        { onboardingComplete: true, onboardingTemplateId: templateId },
+        { merge: true }
+      );
+
+      await batch.commit();
+      return { goalId: goalRef.id };
+    } catch (error) {
+      const e = error as FirestoreError;
+      console.error("Firestore error (operation):", e);
+      set({ error: { type: "operation", message: e.message } });
+      throw error;
+    }
+  },
+
   addHabit: async (habit) => {
     const uid = get()._uid;
     if (!uid) return;
 
     try {
-      await addDoc(collection(db, "habits"), {
-        ...habit,
-        userId: uid,
-        completions: [],
-        createdAt: Timestamp.now(),
-      });
+      await addDoc(
+        collection(db, "habits"),
+        omitUndefined({
+          ...habit,
+          userId: uid,
+          completions: [],
+          createdAt: Timestamp.now(),
+        }) as Record<string, unknown>
+      );
     } catch (error) {
       const e = error as FirestoreError;
       console.error("Firestore error (operation):", e);

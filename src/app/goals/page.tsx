@@ -2,15 +2,20 @@
 
 import Header from "@/components/Header";
 import { useAppStore } from "@/stores/app-store";
+import { QuickstartTemplatePicker } from "@/components/QuickstartTemplatePicker";
 import { useState } from "react";
 import Link from "next/link";
 import { NewGoalForm, GoalCategory, GoalPriority } from "@/types/goals";
+import { useRouter } from "next/navigation";
 
 export default function GoalsPage() {
   const goals = useAppStore((s) => s.goals);
   const addGoal = useAppStore((s) => s.addGoal);
   const deleteGoal = useAppStore((s) => s.deleteGoal);
+  const applyQuickstartTemplate = useAppStore((s) => s.applyQuickstartTemplate);
+  const router = useRouter();
   const [isAddingGoal, setIsAddingGoal] = useState(false);
+  const [isTemplateOpen, setIsTemplateOpen] = useState(false);
   const [newGoal, setNewGoal] = useState<NewGoalForm>({
     name: "",
     reason: "",
@@ -85,13 +90,33 @@ export default function GoalsPage() {
               Track and manage your long-term goals
             </p>
           </div>
-          <button
-            onClick={() => setIsAddingGoal(true)}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-xs text-white bg-indigo-600 hover:bg-indigo-700"
-          >
-            Add Goal
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsTemplateOpen(true)}
+              className="inline-flex items-center px-4 py-2 border border-gray-200 text-sm font-medium rounded-md shadow-xs text-gray-900 bg-white hover:bg-gray-50"
+            >
+              Use template
+            </button>
+            <button
+              onClick={() => setIsAddingGoal(true)}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-xs text-white bg-indigo-600 hover:bg-indigo-700"
+            >
+              Add Goal
+            </button>
+          </div>
         </div>
+
+        <QuickstartTemplatePicker
+          isOpen={isTemplateOpen}
+          onClose={() => setIsTemplateOpen(false)}
+          title="Create a goal from a template"
+          description="This adds a new goal + starter habits. You can customize after."
+          onPick={async (templateId) => {
+            const { goalId } = await applyQuickstartTemplate(templateId);
+            setIsTemplateOpen(false);
+            router.push(`/goals/${goalId}`);
+          }}
+        />
 
         {isAddingGoal && (
           <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">

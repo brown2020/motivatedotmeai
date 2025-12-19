@@ -2,12 +2,19 @@
 
 import Header from "@/components/Header";
 import { useAppStore } from "@/stores/app-store";
+import { QuickstartTemplatePicker } from "@/components/QuickstartTemplatePicker";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function DashboardPage() {
   const goals = useAppStore((s) => s.goals);
   const habits = useAppStore((s) => s.habits);
+  const user = useAppStore((s) => s.user);
+  const loading = useAppStore((s) => s.loading);
+  const applyQuickstartTemplate = useAppStore((s) => s.applyQuickstartTemplate);
+  const router = useRouter();
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
 
   const currentStreakDays = useMemo(() => {
     const all = habits.flatMap((h) => h.completions.map((d) => new Date(d)));
@@ -57,6 +64,10 @@ export default function DashboardPage() {
       .slice(0, 10);
   }, [goals, habits]);
 
+  const isEmpty = goals.length === 0 && habits.length === 0;
+  const shouldNudgeQuickstart =
+    !loading.user && isEmpty && user?.onboardingComplete === false;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -71,6 +82,57 @@ export default function DashboardPage() {
             {`Here's an overview of your progress today.`}
           </p>
         </div>
+
+        <div className="mt-6 px-4 sm:px-0">
+          <div className="bg-white shadow-sm rounded-lg p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Quickstart templates
+                </h2>
+                <p className="mt-1 text-sm text-gray-600">
+                  Create a goal + starter habits in seconds.
+                </p>
+              </div>
+              <div className="shrink-0 flex items-center gap-3">
+                {shouldNudgeQuickstart && (
+                  <span className="text-xs text-gray-500">
+                    Takes ~5 seconds
+                  </span>
+                )}
+                <button
+                  onClick={() => setIsPickerOpen(true)}
+                  className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-xs hover:bg-indigo-700"
+                >
+                  Use a template
+                </button>
+              </div>
+            </div>
+
+            {shouldNudgeQuickstart && (
+              <p className="mt-3 text-sm text-gray-600">
+                You have no goals/habits yet — pick a template to see the
+                framework in action immediately.
+              </p>
+            )}
+          </div>
+        </div>
+
+        <QuickstartTemplatePicker
+          isOpen={isPickerOpen}
+          onClose={() => setIsPickerOpen(false)}
+          title={isEmpty ? "Start with a template" : "Create another set"}
+          description={
+            isEmpty
+              ? "We’ll create a goal + starter habits so you can try it right away."
+              : "This will add a new goal + starter habits alongside your existing items."
+          }
+          onPick={async (templateId) => {
+            const { goalId } = await applyQuickstartTemplate(templateId);
+            setIsPickerOpen(false);
+            router.push(`/goals/${goalId}`);
+          }}
+        />
 
         <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {/* Stats Cards */}
