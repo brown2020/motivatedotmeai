@@ -210,3 +210,4 @@ export function buildQuickstartGoalAndHabits(template: QuickstartTemplate) {
 
   return { goal, habits };
 }
+

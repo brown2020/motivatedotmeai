@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## motivatedotmeai
 
-## Getting Started
+A Next.js app for tracking goals/habits with Firebase-backed auth and an AI “goal insights” endpoint.
 
-First, run the development server:
+### Tech stack (from `package-lock.json`)
+
+- **Framework**: Next.js `^16.0.3`
+- **UI**: React `^19.0.0`, Tailwind CSS `^4.0.8`
+- **State**: Zustand `^5.0.2`
+- **Validation**: Zod `^4.1.13`
+- **Auth/Data/Storage**: Firebase `^12.6.0` (client), `firebase-admin` `^13.4.0` (server)
+- **AI**: Vercel AI SDK (`ai` `^6.0.3`) + `@ai-sdk/openai` `^3.0.1`
+
+### Requirements
+
+- **Node.js**: `>= 18` (required by the AI SDK dependencies)
+- **Firebase project**: for client-side auth + Firestore/Storage
+- **OpenAI API key** (optional): to enable the AI goal insights route
+
+### Setup
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Create a `.env.local` (or set equivalent environment variables in your hosting environment).
+
+### Environment variables
+
+Firebase (client):
+
+- **`NEXT_PUBLIC_FIREBASE_API_KEY`**
+- **`NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`**
+- **`NEXT_PUBLIC_FIREBASE_PROJECT_ID`**
+- **`NEXT_PUBLIC_FIREBASE_APP_ID`**
+
+Firebase (server / session cookies):
+
+- **`FIREBASE_SERVICE_ACCOUNT_KEY`**: the full Firebase service account JSON, as a single JSON string.
+  - This is required in **production** to create/verify session cookies.
+  - If missing in production, `/api/auth/session` returns `SESSION_NOT_CONFIGURED`.
+
+Local dev convenience (optional):
+
+- **`ALLOW_DEV_SESSION=1`**: enables a **dev-only session bypass** when `FIREBASE_SERVICE_ACCOUNT_KEY` is not set and `NODE_ENV !== "production"`.
+
+AI (optional):
+
+- **`OPENAI_API_KEY`**: enables `/api/ai/goal-insights`. If missing, the route responds with `501` and `AI not configured`.
+
+### Running locally
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run dev
+npm run build
+npm run start
+npm run lint
+```
 
-## Learn More
+### License
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**. See `LICENSE.md`.
