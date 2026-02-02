@@ -1,20 +1,17 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getAdminAuth } from "@/lib/firebase-admin";
-
-const SESSION_COOKIE_NAME = "__session";
-const DEV_SESSION_COOKIE_NAME = "__dev_session";
+import {
+  SESSION_COOKIE_NAME,
+  DEV_SESSION_COOKIE_NAME,
+  hasValidDevSession,
+} from "@/lib/dev-session";
 
 export async function GET() {
   const jar = await cookies();
 
-  const allowDevSessionBypass = process.env.ALLOW_DEV_SESSION === "1";
   const devCookie = jar.get(DEV_SESSION_COOKIE_NAME)?.value;
-  if (
-    allowDevSessionBypass &&
-    process.env.NODE_ENV !== "production" &&
-    devCookie
-  ) {
+  if (hasValidDevSession(devCookie)) {
     return NextResponse.json({ ok: true, mode: "dev", uid: "dev" });
   }
 

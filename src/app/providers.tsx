@@ -4,6 +4,19 @@ import { useEffect } from "react";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAppStore } from "@/stores/app-store";
 import { usePathname, useRouter } from "next/navigation";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
+
+const PROTECTED_PREFIXES = [
+  "/dashboard",
+  "/goals",
+  "/habits",
+  "/tracker",
+  "/profile",
+];
+
+function isProtectedPath(pathname: string) {
+  return PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
+}
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const initAuth = useAuthStore((s) => s.init);
@@ -33,21 +46,23 @@ export function Providers({ children }: { children: React.ReactNode }) {
     if (isAuthLoading) return;
     if (uid) return;
 
-    const protectedPrefixes = [
-      "/dashboard",
-      "/goals",
-      "/habits",
-      "/tracker",
-      "/profile",
-    ];
-    const isProtected = protectedPrefixes.some((p) => pathname.startsWith(p));
-    if (!isProtected) return;
+    if (!isProtectedPath(pathname)) return;
 
     const search =
       typeof window !== "undefined" ? window.location.search || "" : "";
     const next = encodeURIComponent(`${pathname}${search}`);
     router.replace(`/signin?next=${next}`);
   }, [isAuthLoading, pathname, router, uid]);
+
+  // Don't render protected content until auth state is resolved
+  // This prevents the flash of authenticated content for unauthenticated users
+  if (isAuthLoading && isProtectedPath(pathname)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <LoadingSpinner size="large" />
+      </div>
+    );
+  }
 
   return children;
 }

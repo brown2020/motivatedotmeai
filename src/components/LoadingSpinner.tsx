@@ -20,7 +20,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   const spinner = (
     <div className={`${sizeClasses[size]} animate-spin`}>
       <svg
-        className="w-full h-full text-indigo-600"
+        className="w-full h-full text-indigo-600 dark:text-indigo-400"
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
         viewBox="0 0 24 24"
@@ -44,7 +44,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 bg-gray-50 bg-opacity-75 flex items-center justify-center">
+      <div className="fixed inset-0 bg-gray-50 dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-75 flex items-center justify-center">
         {spinner}
       </div>
     );

@@ -19,42 +19,17 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Goal, Milestone } from "@/types/goals";
+import type { Habit } from "@/types/habits";
+import type { UserDoc, DailyLog } from "@/types/user";
 import {
   QUICKSTART_TEMPLATES,
   buildQuickstartGoalAndHabits,
 } from "@/lib/quickstart-templates";
+import { isSameLocalDay, parseDateKey } from "@/lib/date-utils";
 
-interface Habit {
-  id: string;
-  name: string;
-  goalId: string;
-  frequency: "daily" | "weekly";
-  reminderTime?: string;
-  completions: Date[];
-  userId: string;
-}
-
-interface UserDoc {
-  userId?: string;
-  profilePhotoURL?: string | null;
-  onboardingComplete: boolean;
-  preferences: {
-    darkMode: boolean;
-    notifications: boolean;
-    reminderTimes: string[];
-  };
-}
-
-export interface DailyLog {
-  dateKey: string; // YYYY-MM-DD
-  date: Date; // midnight local
-  mood?: number; // 1-5
-  energy?: number; // 1-5
-  weightKg?: number;
-  notes?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
+// Re-export types for convenience
+export type { DailyLog } from "@/types/user";
+export type { Habit } from "@/types/habits";
 
 interface LoadingState {
   goals: boolean;
@@ -135,14 +110,6 @@ interface AppState {
   _uid: string | null;
   _unsubs: Unsub[];
 }
-
-const isSameLocalDay = (a: Date, b: Date) => {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-};
 
 function omitUndefined<T extends Record<string, unknown>>(obj: T) {
   const out: Record<string, unknown> = {};
@@ -697,9 +664,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const uid = get()._uid;
     if (!uid) return;
 
-    const [y, m, d] = dateKey.split("-").map((n) => Number(n));
-    const date = new Date(y, (m || 1) - 1, d || 1);
-    date.setHours(0, 0, 0, 0);
+    const date = parseDateKey(dateKey);
 
     try {
       const logRef = doc(db, "users", uid, "dailyLogs", dateKey);

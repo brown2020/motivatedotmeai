@@ -1,15 +1,53 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { getAdminAuth } from "@/lib/firebase-admin";
+import {
+  SESSION_COOKIE_NAME,
+  DEV_SESSION_COOKIE_NAME,
+  SESSION_EXPIRES_IN_MS,
+  isDevSessionBypassEnabled,
+} from "@/lib/dev-session";
 
-const SESSION_COOKIE_NAME = "__session";
-const DEV_SESSION_COOKIE_NAME = "__dev_session";
-const SESSION_EXPIRES_IN_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
+// Allowed origins for CSRF protection
+const ALLOWED_ORIGINS = [
+  "http://localhost:3000",
+  "https://localhost:3000",
+];
+
+function isValidOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+
+  // In production, check against allowed origins or same-site
+  if (process.env.NODE_ENV === "production") {
+    // Allow same-origin requests (no Origin header) or matching origins
+    const prodOrigin = process.env.NEXT_PUBLIC_APP_URL;
+    if (prodOrigin && origin === prodOrigin) return true;
+    return false;
+  }
+
+  // In development, allow localhost
+  return ALLOWED_ORIGINS.some((allowed) => origin.startsWith(allowed));
+}
 
 export async function POST(req: Request) {
+  // CSRF protection: verify origin header
+  const headersList = await headers();
+  const origin = headersList.get("origin");
+  const referer = headersList.get("referer");
+
+  // Check if request comes from a valid origin
+  if (!isValidOrigin(origin) && !referer?.includes("localhost")) {
+    // Allow requests without origin (same-origin requests from some browsers)
+    if (origin !== null) {
+      return NextResponse.json(
+        { error: "Invalid request origin" },
+        { status: 403 }
+      );
+    }
+  }
+
   const isAdminConfigured = Boolean(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
   const isProd = process.env.NODE_ENV === "production";
-  const allowDevSessionBypass = process.env.ALLOW_DEV_SESSION === "1";
 
   if (!isAdminConfigured && isProd) {
     return NextResponse.json(
@@ -36,7 +74,7 @@ export async function POST(req: Request) {
 
   // Dev fallback: allow a dev-only cookie so local development isn't blocked.
   if (!isAdminConfigured && !isProd) {
-    if (!allowDevSessionBypass) {
+    if (!isDevSessionBypassEnabled()) {
       return NextResponse.json(
         {
           error:
@@ -51,7 +89,7 @@ export async function POST(req: Request) {
     jar.set(DEV_SESSION_COOKIE_NAME, "1", {
       httpOnly: true,
       secure: false,
-      sameSite: "lax",
+      sameSite: "strict",
       path: "/",
       maxAge: Math.floor(SESSION_EXPIRES_IN_MS / 1000),
     });
@@ -68,7 +106,7 @@ export async function POST(req: Request) {
     jar.set(SESSION_COOKIE_NAME, sessionCookie, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "strict", // Changed from "lax" for better CSRF protection
       path: "/",
       maxAge: Math.floor(SESSION_EXPIRES_IN_MS / 1000),
     });
@@ -88,14 +126,14 @@ export async function DELETE() {
   jar.set(SESSION_COOKIE_NAME, "", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "strict",
     path: "/",
     maxAge: 0,
   });
   jar.set(DEV_SESSION_COOKIE_NAME, "", {
     httpOnly: true,
     secure: false,
-    sameSite: "lax",
+    sameSite: "strict",
     path: "/",
     maxAge: 0,
   });

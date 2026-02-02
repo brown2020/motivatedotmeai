@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+// Note: Cannot import from @/lib/dev-session here because this is Edge Runtime
+// and that module uses "server-only". Constants are duplicated intentionally.
 const SESSION_COOKIE_NAME = "__session";
 const DEV_SESSION_COOKIE_NAME = "__dev_session";
 
@@ -12,7 +14,7 @@ const PROTECTED_PREFIXES = [
   "/tracker",
   "/profile",
 ];
-const PUBLIC_PREFIXES = [SIGN_IN_PATH];
+const PUBLIC_PREFIXES = [SIGN_IN_PATH, "/about", "/privacy", "/terms"];
 
 function isProtectedPath(pathname: string) {
   return PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
@@ -29,16 +31,33 @@ function getNextParam(pathname: string, search: string) {
   return encodeURIComponent(raw);
 }
 
-async function isRequestSignedIn(req: NextRequest) {
+/**
+ * Check if dev session bypass is enabled.
+ * WARNING: This should NEVER return true in production.
+ */
+function isDevSessionBypassEnabled(): boolean {
   const allowDevSessionBypass = process.env.ALLOW_DEV_SESSION === "1";
+  const isProd = process.env.NODE_ENV === "production";
 
+  if (allowDevSessionBypass && isProd) {
+    console.warn(
+      "⚠️ WARNING: ALLOW_DEV_SESSION is enabled in production! This is a security risk."
+    );
+    return false;
+  }
+
+  return allowDevSessionBypass && !isProd;
+}
+
+async function isRequestSignedIn(req: NextRequest) {
   const hasDevSessionCookie =
-    allowDevSessionBypass &&
-    process.env.NODE_ENV !== "production" &&
+    isDevSessionBypassEnabled() &&
     Boolean(req.cookies.get(DEV_SESSION_COOKIE_NAME)?.value);
   if (hasDevSessionCookie) return true;
 
-  const hasSessionCookie = Boolean(req.cookies.get(SESSION_COOKIE_NAME)?.value);
+  const hasSessionCookie = Boolean(
+    req.cookies.get(SESSION_COOKIE_NAME)?.value
+  );
   if (!hasSessionCookie) return false;
 
   // Verify the session cookie server-side so stale cookies don't bypass auth.
@@ -47,27 +66,31 @@ async function isRequestSignedIn(req: NextRequest) {
   verifyUrl.search = "";
 
   const cookieHeader = req.headers.get("cookie") || "";
-  const res = await fetch(verifyUrl, {
-    method: "GET",
-    headers: { cookie: cookieHeader },
-    cache: "no-store",
-  });
-
-  return res.ok;
+  try {
+    const res = await fetch(verifyUrl, {
+      method: "GET",
+      headers: { cookie: cookieHeader },
+      cache: "no-store",
+    });
+    return res.ok;
+  } catch (error) {
+    console.error("Failed to verify session:", error);
+    return false;
+  }
 }
 
 function clearSessionCookies(res: NextResponse) {
   res.cookies.set(SESSION_COOKIE_NAME, "", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "strict",
     path: "/",
     maxAge: 0,
   });
   res.cookies.set(DEV_SESSION_COOKIE_NAME, "", {
     httpOnly: true,
     secure: false,
-    sameSite: "lax",
+    sameSite: "strict",
     path: "/",
     maxAge: 0,
   });
@@ -81,9 +104,9 @@ export async function proxyMiddleware(req: NextRequest) {
 
   const isSignedIn = await isRequestSignedIn(req);
 
-  // Always allow public routes (signin, assets, etc)
+  // Always allow public routes (signin, about, privacy, terms, etc)
   if (isPublicPath(pathname)) {
-    // If already signed in, keep "/" and "/signin" as landing redirects.
+    // If already signed in, redirect "/" and "/signin" to dashboard.
     if (isSignedIn && (pathname === "/" || pathname === SIGN_IN_PATH)) {
       const url = req.nextUrl.clone();
       url.pathname = "/dashboard";

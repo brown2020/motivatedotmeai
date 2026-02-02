@@ -9,7 +9,7 @@ interface ErrorAlertProps {
 
 export const ErrorAlert: React.FC<ErrorAlertProps> = ({ message, onClose }) => {
   return (
-    <div className="rounded-md bg-red-50 p-4">
+    <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4">
       <div className="flex">
         <div className="shrink-0">
           <svg
@@ -26,8 +26,8 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({ message, onClose }) => {
           </svg>
         </div>
         <div className="ml-3">
-          <h3 className="text-sm font-medium text-red-800">Error</h3>
-          <div className="mt-2 text-sm text-red-700">
+          <h3 className="text-sm font-medium text-red-800 dark:text-red-200">Error</h3>
+          <div className="mt-2 text-sm text-red-700 dark:text-red-300">
             <p>{message}</p>
           </div>
         </div>
@@ -37,7 +37,7 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({ message, onClose }) => {
               <button
                 type="button"
                 onClick={onClose}
-                className="inline-flex rounded-md bg-red-50 p-1.5 text-red-500 hover:bg-red-100 focus:outline-hidden focus:ring-2 focus:ring-red-600 focus:ring-offset-2 focus:ring-offset-red-50"
+                className="inline-flex rounded-md bg-red-50 dark:bg-red-900/30 p-1.5 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 focus:ring-offset-red-50 dark:focus:ring-offset-gray-900"
               >
                 <span className="sr-only">Dismiss</span>
                 <svg

@@ -12,49 +12,67 @@ interface AuthState {
   user: User | null;
   isLoading: boolean;
   hasInitialized: boolean;
+  _unsubscribe: (() => void) | null;
   init: () => void;
   signInWithGoogle: () => Promise<boolean>;
   signOut: () => Promise<void>;
 }
 
-let unsubscribeAuth: (() => void) | null = null;
-
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isLoading: true,
   hasInitialized: false,
+  _unsubscribe: null,
 
   init: () => {
-    if (get().hasInitialized) return;
+    const state = get();
+    if (state.hasInitialized) return;
+
+    // Mark as initialized immediately to prevent double initialization
     set({ hasInitialized: true });
 
-    if (unsubscribeAuth) return;
+    // If we already have a subscription, don't create another
+    if (state._unsubscribe) return;
 
-    unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       set({ user, isLoading: false });
       // Keep server session cookies in sync with Firebase auth state.
       // If Firebase signs out (token revoked/expired, cleared storage, etc),
       // ensure we clear the httpOnly session cookies so `proxy.ts` blocks again.
       if (!user) {
-        fetch("/api/auth/session", { method: "DELETE" }).catch(() => {});
+        fetch("/api/auth/session", { method: "DELETE" }).catch((err) => {
+          console.error("Failed to clear session on sign out:", err);
+        });
       }
     });
+
+    // Store the unsubscribe function in state
+    set({ _unsubscribe: unsubscribe });
   },
 
   signInWithGoogle: async () => {
     const provider = new GoogleAuthProvider();
     try {
+      // First, complete the Firebase popup auth
       await signInWithPopup(auth, provider);
+
+      // Get a fresh token
       const idToken = await auth.currentUser?.getIdToken(true);
       if (!idToken) return false;
 
+      // Create server-side session cookie
       const res = await fetch("/api/auth/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idToken }),
       });
 
-      return res.ok;
+      if (!res.ok) {
+        console.error("Failed to create session:", await res.text());
+        return false;
+      }
+
+      return true;
     } catch (error) {
       console.error("Error signing in with Google:", error);
       return false;

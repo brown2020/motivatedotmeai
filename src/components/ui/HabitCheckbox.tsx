@@ -19,14 +19,14 @@ const HabitCheckbox: React.FC<HabitCheckboxProps> = ({
   );
 
   return (
-    <div className="flex items-center space-x-3 p-4 bg-white rounded-lg shadow-sm">
+    <div className="flex items-center space-x-3 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
       <input
         type="checkbox"
         checked={completed}
         onChange={() => toggleHabitCompletionToday(habitId)}
-        className="w-5 h-5 text-blue-600 rounded-sm focus:ring-blue-500"
+        className="w-5 h-5 text-indigo-600 rounded-sm border-gray-300 dark:border-gray-600 focus:ring-indigo-500 dark:bg-gray-700"
       />
-      <label className="text-sm font-medium text-gray-700">{name}</label>
+      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{name}</label>
     </div>
   );
 };
