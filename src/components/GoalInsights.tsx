@@ -102,8 +102,11 @@ export const GoalInsights: React.FC<GoalInsightsProps> = ({ goalId }) => {
               className="bg-blue-500 h-2 rounded-full"
               style={{
                 width: `${
-                  (insights.completedMilestones / insights.totalMilestones) *
-                  100
+                  insights.totalMilestones > 0
+                    ? (insights.completedMilestones /
+                        insights.totalMilestones) *
+                      100
+                    : 0
                 }%`,
               }}
             />
