@@ -3,6 +3,8 @@ import {
   FirestoreError,
   Timestamp,
   addDoc,
+  arrayRemove,
+  arrayUnion,
   collection,
   deleteDoc,
   doc,
@@ -137,9 +139,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     const state = get();
     if (state._uid === uid) return;
 
-    // Cleanup existing subscriptions
+    // Cleanup existing subscriptions before setting new uid
     state._unsubs.forEach((u) => u());
 
+    // Set uid and unsubs atomically to prevent double-init race
     set({
       _uid: uid,
       _unsubs: [],
@@ -165,7 +168,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       error: FirestoreError,
       type: ErrorState["type"]
     ) => {
-      console.error(`Firestore error (${type}):`, error);
       set({ error: { type, message: error.message } });
     };
 
@@ -277,7 +279,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       await addDoc(collection(db, "goals"), newGoal);
     } catch (error) {
       const e = error as FirestoreError;
-      console.error("Firestore error (operation):", e);
       set({ error: { type: "operation", message: e.message } });
     }
   },
@@ -304,7 +305,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       await updateDoc(goalRef, updatedGoal);
     } catch (error) {
       const e = error as FirestoreError;
-      console.error("Firestore error (operation):", e);
       set({ error: { type: "operation", message: e.message } });
     }
   },
@@ -317,7 +317,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       await deleteDoc(doc(db, "goals", goalId));
     } catch (error) {
       const e = error as FirestoreError;
-      console.error("Firestore error (operation):", e);
       set({ error: { type: "operation", message: e.message } });
     }
   },
@@ -373,7 +372,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       return { goalId: goalRef.id };
     } catch (error) {
       const e = error as FirestoreError;
-      console.error("Firestore error (operation):", e);
       set({ error: { type: "operation", message: e.message } });
       throw error;
     }
@@ -395,7 +393,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       );
     } catch (error) {
       const e = error as FirestoreError;
-      console.error("Firestore error (operation):", e);
       set({ error: { type: "operation", message: e.message } });
       throw error;
     }
@@ -409,7 +406,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       await deleteDoc(doc(db, "habits", habitId));
     } catch (error) {
       const e = error as FirestoreError;
-      console.error("Firestore error (operation):", e);
       set({ error: { type: "operation", message: e.message } });
       throw error;
     }
@@ -424,21 +420,27 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (!habit) throw new Error("Habit not found");
 
       const now = new Date();
-      const alreadyCompletedToday = habit.completions.some((d) =>
+      const todayCompletion = habit.completions.find((d) =>
         isSameLocalDay(d, now)
       );
 
-      const nextCompletions = alreadyCompletedToday
-        ? habit.completions.filter((d) => !isSameLocalDay(d, now))
-        : [...habit.completions, now];
+      const habitRef = doc(db, "habits", habitId);
 
-      await updateDoc(doc(db, "habits", habitId), {
-        completions: nextCompletions.map((d) => Timestamp.fromDate(d)),
-        updatedAt: Timestamp.now(),
-      });
+      if (todayCompletion) {
+        // Remove today's completion atomically
+        await updateDoc(habitRef, {
+          completions: arrayRemove(Timestamp.fromDate(todayCompletion)),
+          updatedAt: Timestamp.now(),
+        });
+      } else {
+        // Add today's completion atomically
+        await updateDoc(habitRef, {
+          completions: arrayUnion(Timestamp.fromDate(now)),
+          updatedAt: Timestamp.now(),
+        });
+      }
     } catch (error) {
       const e = error as FirestoreError;
-      console.error("Firestore error (operation):", e);
       set({ error: { type: "operation", message: e.message } });
       throw error;
     }
@@ -452,7 +454,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       await updateDoc(doc(db, "goals", goalId), { progress });
     } catch (error) {
       const e = error as FirestoreError;
-      console.error("Firestore error (operation):", e);
       set({ error: { type: "operation", message: e.message } });
       throw error;
     }
@@ -478,7 +479,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       });
     } catch (error) {
       const e = error as FirestoreError;
-      console.error("Firestore error (operation):", e);
       set({ error: { type: "operation", message: e.message } });
       throw error;
     }
@@ -492,7 +492,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       await setDoc(doc(db, "users", uid), { preferences }, { merge: true });
     } catch (error) {
       const e = error as FirestoreError;
-      console.error("Firestore error (operation):", e);
       set({ error: { type: "operation", message: e.message } });
       throw error;
     }
@@ -510,7 +509,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       );
     } catch (error) {
       const e = error as FirestoreError;
-      console.error("Firestore error (operation):", e);
       set({ error: { type: "operation", message: e.message } });
       throw error;
     }
@@ -543,7 +541,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       });
     } catch (error) {
       const e = error as FirestoreError;
-      console.error("Firestore error (operation):", e);
       set({ error: { type: "operation", message: e.message } });
       throw error;
     }
@@ -567,7 +564,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       await updateDoc(doc(db, "goals", goalId), { status });
     } catch (error) {
       const e = error as FirestoreError;
-      console.error("Firestore error (operation):", e);
       set({ error: { type: "operation", message: e.message } });
       throw error;
     }
@@ -654,7 +650,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       }));
     } catch (error) {
       const e = error as FirestoreError;
-      console.error("Firestore error (operation):", e);
       set({ error: { type: "operation", message: e.message } });
       throw error;
     }
@@ -686,7 +681,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       await get().loadDailyLog(dateKey);
     } catch (error) {
       const e = error as FirestoreError;
-      console.error("Firestore error (operation):", e);
       set({ error: { type: "operation", message: e.message } });
       throw error;
     }
@@ -731,7 +725,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({ recentDailyLogs: logs });
     } catch (error) {
       const e = error as FirestoreError;
-      console.error("Firestore error (operation):", e);
       set({ error: { type: "operation", message: e.message } });
       throw error;
     }

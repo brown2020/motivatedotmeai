@@ -119,8 +119,8 @@ export default function ProfilePage() {
                         if (!file) return;
                         try {
                           await handleProfilePhoto(file);
-                        } catch (err) {
-                          console.error(err);
+                        } catch {
+                          // Error is handled by the store's error state
                         } finally {
                           // reset so selecting same file again triggers change
                           e.target.value = "";

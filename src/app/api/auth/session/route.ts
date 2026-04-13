@@ -36,9 +36,13 @@ export async function POST(req: Request) {
   const referer = headersList.get("referer");
 
   // Check if request comes from a valid origin
-  if (!isValidOrigin(origin) && !referer?.includes("localhost")) {
-    // Allow requests without origin (same-origin requests from some browsers)
-    if (origin !== null) {
+  if (!isValidOrigin(origin)) {
+    // Allow requests without origin header (same-origin requests from some browsers)
+    // In dev, also allow requests with a localhost referer
+    const isDevLocalhost =
+      process.env.NODE_ENV !== "production" &&
+      referer?.startsWith("http://localhost");
+    if (origin !== null && !isDevLocalhost) {
       return NextResponse.json(
         { error: "Invalid request origin" },
         { status: 403 }

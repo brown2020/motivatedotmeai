@@ -60,32 +60,30 @@ export const HabitAnalytics: React.FC<HabitAnalyticsProps> = ({ habitId }) => {
 
     // Calculate longest streak
     let longestStreak = 0;
-    let currentCount = 0;
-    lastDate = completions[0];
-    for (const date of completions) {
-      if (!lastDate) {
-        currentCount = 1;
+    let currentCount = 1;
+    for (let i = 1; i < completions.length; i++) {
+      const dayDiff = Math.floor(
+        (completions[i - 1].getTime() - completions[i].getTime()) /
+          (1000 * 60 * 60 * 24)
+      );
+      if (dayDiff <= 1) {
+        currentCount++;
       } else {
-        const dayDiff = Math.floor(
-          (lastDate.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
-        );
-        if (dayDiff <= 1) {
-          currentCount++;
-        } else {
-          longestStreak = Math.max(longestStreak, currentCount);
-          currentCount = 1;
-        }
+        longestStreak = Math.max(longestStreak, currentCount);
+        currentCount = 1;
       }
-      lastDate = date;
     }
-    longestStreak = Math.max(longestStreak, currentCount);
+    longestStreak = Math.max(
+      longestStreak,
+      completions.length > 0 ? currentCount : 0
+    );
 
     // Calculate completion rate (last 30 days)
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const last30DaysCompletions = completions.filter(
       (date) => date >= thirtyDaysAgo
     ).length;
-    const completionRate = (last30DaysCompletions / 30) * 100;
+    const completionRate = Math.min(100, (last30DaysCompletions / 30) * 100);
 
     // Calculate best day of week
     const dayCount = new Array(7).fill(0);
