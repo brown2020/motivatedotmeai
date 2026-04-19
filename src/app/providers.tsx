@@ -25,7 +25,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const initForUser = useAppStore((s) => s.initForUser);
   const darkMode = useAppStore((s) => s.user?.preferences.darkMode);
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
 
   useEffect(() => {
     initAuth();
