@@ -12,7 +12,7 @@ export default function GoalDetailsPage() {
   const goals = useAppStore((s) => s.goals);
   const updateGoal = useAppStore((s) => s.updateGoal);
   const deleteGoal = useAppStore((s) => s.deleteGoal);
-  const params = useParams();
+  const params = useParams()!;
   const router = useRouter();
   const goalId = params.id as string;
   const goal = goals.find((g) => g.id === goalId);

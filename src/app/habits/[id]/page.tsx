@@ -10,7 +10,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 export default function HabitDetailsPage() {
-  const params = useParams();
+  const params = useParams()!;
   const router = useRouter();
   const habitId = params.id as string;
 
