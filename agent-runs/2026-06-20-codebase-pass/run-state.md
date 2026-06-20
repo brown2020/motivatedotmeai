@@ -11,21 +11,22 @@
 
 ## Current State
 
-- Phase: Findings Backlog
-- Task: T-003
-- Status: T-003 complete; commit-push checkpoint pending
-- Last command: rg "searchParams|nextPath|router\\.push|router\\.replace|redirect\\(" src/app src/components src/stores proxy.ts
-- Last result: Confirmed raw sign-in next target flows into client router.push
-- Last pushed commit: 5efe34e17835f532b0537bf6110b19f352cf9140
+- Phase: Execute Fixes and Improvements
+- Task: T-004
+- Status: T-004 complete; commit-push checkpoint pending
+- Last command: npm run build
+- Last result: Passed after sign-in redirect sanitization
+- Last pushed commit: 19f923dfd57de68e2748f6e70ab16c0e21502c1c
 - Branch sync: dev matches origin/dev
-- Working tree: Dirty with in-scope findings report, run-state, and task queue updates
-- Next action: Commit/push findings backlog, then fix F-001
+- Working tree: Dirty with in-scope F-001 source fix and report updates
+- Next action: Commit/push F-001 fix, then fix F-004
 
 ## Dirty File Classification
 
 | Path | Classification | Owner/Reason |
 | --- | --- | --- |
-| `agent-runs/2026-06-20-codebase-pass/` | Safe-to-commit | T-003 findings backlog, run-state, and task queue updates |
+| `src/app/signin/page.tsx` | In-scope source | T-004 F-001 sign-in redirect sanitization |
+| `agent-runs/2026-06-20-codebase-pass/` | Safe-to-commit | T-004 execution report, run-state, task queue, and findings status updates |
 
 ## Blockers
 
