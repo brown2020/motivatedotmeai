@@ -8,6 +8,32 @@ import {
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
+async function clearServerSessionCookie() {
+  await fetch("/api/auth/session", {
+    method: "DELETE",
+    credentials: "include",
+  });
+}
+
+async function resetFailedSignIn() {
+  try {
+    await clearServerSessionCookie();
+  } catch (error) {
+    console.error("Failed to clear session after sign-in failure:", error);
+  }
+
+  if (auth.currentUser) {
+    try {
+      await firebaseSignOut(auth);
+    } catch (error) {
+      console.error(
+        "Failed to reset Firebase auth after sign-in failure:",
+        error
+      );
+    }
+  }
+}
+
 interface AuthState {
   user: User | null;
   isLoading: boolean;
@@ -54,11 +80,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const provider = new GoogleAuthProvider();
     try {
       // First, complete the Firebase popup auth
-      await signInWithPopup(auth, provider);
+      const credential = await signInWithPopup(auth, provider);
 
       // Get a fresh token
-      const idToken = await auth.currentUser?.getIdToken(true);
-      if (!idToken) return false;
+      const idToken = await credential.user.getIdToken(true);
+      if (!idToken) {
+        await resetFailedSignIn();
+        return false;
+      }
 
       // Create server-side session cookie
       const res = await fetch("/api/auth/session", {
@@ -69,12 +98,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (!res.ok) {
         console.error("Failed to create session:", await res.text());
+        await resetFailedSignIn();
         return false;
       }
 
       return true;
     } catch (error) {
       console.error("Error signing in with Google:", error);
+      if (auth.currentUser) {
+        await resetFailedSignIn();
+      }
       return false;
     }
   },
@@ -82,10 +115,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signOut: async () => {
     try {
       // 1) Clear server-side session cookies (httpOnly)
-      await fetch("/api/auth/session", {
-        method: "DELETE",
-        credentials: "include",
-      });
+      await clearServerSessionCookie();
       // 2) Clear Firebase client auth state
       await firebaseSignOut(auth);
       // 3) Force a full navigation so any preloaded client routes are discarded

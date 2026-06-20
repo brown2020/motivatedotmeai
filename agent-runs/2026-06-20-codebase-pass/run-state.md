@@ -12,21 +12,21 @@
 ## Current State
 
 - Phase: Execute Fixes and Improvements
-- Task: T-004
-- Status: T-004 complete; commit-push checkpoint pending
+- Task: T-009
+- Status: T-009 complete; commit-push checkpoint pending
 - Last command: npm run build
-- Last result: Passed after sign-in redirect sanitization
-- Last pushed commit: 19f923dfd57de68e2748f6e70ab16c0e21502c1c
+- Last result: Passed after auth session failure cleanup
+- Last pushed commit: 20f26f3157c92946586d6bd0ab73f268c4540f61
 - Branch sync: dev matches origin/dev
-- Working tree: Dirty with in-scope F-001 source fix and report updates
-- Next action: Commit/push F-001 fix, then fix F-004
+- Working tree: Dirty with in-scope F-004 source fix and report updates
+- Next action: Commit/push F-004 fix, then run package cleanup
 
 ## Dirty File Classification
 
 | Path | Classification | Owner/Reason |
 | --- | --- | --- |
-| `src/app/signin/page.tsx` | In-scope source | T-004 F-001 sign-in redirect sanitization |
-| `agent-runs/2026-06-20-codebase-pass/` | Safe-to-commit | T-004 execution report, run-state, task queue, and findings status updates |
+| `src/stores/auth-store.ts` | In-scope source | T-009 F-004 failed sign-in cleanup |
+| `agent-runs/2026-06-20-codebase-pass/` | Safe-to-commit | T-009 execution report, run-state, task queue, and findings status updates |
 
 ## Blockers
 
