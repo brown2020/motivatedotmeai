@@ -11,21 +11,21 @@
 
 ## Current State
 
-- Phase: Baseline Validation
-- Task: T-002
-- Status: T-002 complete; commit-push checkpoint pending
-- Last command: npm outdated
-- Last result: Completed with dependency drift output and exit code 1
-- Last pushed commit: 196fd0be330aa58840d108cb0aeef19944a1b46e
+- Phase: Findings Backlog
+- Task: T-003
+- Status: T-003 complete; commit-push checkpoint pending
+- Last command: rg "searchParams|nextPath|router\\.push|router\\.replace|redirect\\(" src/app src/components src/stores proxy.ts
+- Last result: Confirmed raw sign-in next target flows into client router.push
+- Last pushed commit: 5efe34e17835f532b0537bf6110b19f352cf9140
 - Branch sync: dev matches origin/dev
-- Working tree: Dirty with in-scope baseline report updates
-- Next action: Commit/push baseline report, then build findings backlog
+- Working tree: Dirty with in-scope findings report, run-state, and task queue updates
+- Next action: Commit/push findings backlog, then fix F-001
 
 ## Dirty File Classification
 
 | Path | Classification | Owner/Reason |
 | --- | --- | --- |
-| `agent-runs/2026-06-20-codebase-pass/` | Safe-to-commit | T-002 baseline report, run-state, and task queue updates |
+| `agent-runs/2026-06-20-codebase-pass/` | Safe-to-commit | T-003 findings backlog, run-state, and task queue updates |
 
 ## Blockers
 
