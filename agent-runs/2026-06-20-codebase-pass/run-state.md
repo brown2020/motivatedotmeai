@@ -12,24 +12,21 @@
 ## Current State
 
 - Phase: Package and Dead-Code Cleanup
-- Task: T-005
-- Status: T-005 complete with deferred forced audit fix; commit-push checkpoint pending
-- Last command: npm outdated
-- Last result: Completed with only major/out-of-range updates remaining
-- Last pushed commit: 4a770a4888f8efee25d15a29990e8aa1ad1fd383
+- Task: T-010
+- Status: T-010 complete; commit-push checkpoint pending
+- Last command: npm run build
+- Last result: Passed after removing unused store methods
+- Last pushed commit: 5beeaec2a395e8ff5ef00773ca567fa1f271765b
 - Branch sync: dev matches origin/dev
-- Working tree: Dirty with in-scope package/docs/report updates
-- Next action: Commit/push package cleanup, then review
+- Working tree: Dirty with in-scope dead-code cleanup and report updates
+- Next action: Commit/push dead-code cleanup, then review
 
 ## Dirty File Classification
 
 | Path | Classification | Owner/Reason |
 | --- | --- | --- |
-| `package.json` | In-scope package config | T-005 adds lint script |
-| `package-lock.json` | In-scope lockfile | T-005 safe npm update |
-| `AGENTS.md` | Safe-to-commit | T-005 command guidance update |
-| `SPEC.md` | Safe-to-commit | T-005 validation/dependency state update |
-| `agent-runs/2026-06-20-codebase-pass/` | Safe-to-commit | T-005 package cleanup report, run-state, task queue, and findings status updates |
+| `src/stores/app-store.ts` | In-scope source | T-010 remove unused store methods |
+| `agent-runs/2026-06-20-codebase-pass/` | Safe-to-commit | T-010 dead-code report, run-state, task queue, and findings status updates |
 
 ## Blockers
 

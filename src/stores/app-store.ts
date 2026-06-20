@@ -92,8 +92,6 @@ interface AppState {
   completeMilestone: (goalId: string, milestoneId: string) => Promise<void>;
   setUserPreferences: (preferences: UserDoc["preferences"]) => Promise<void>;
   setProfilePhotoURL: (url: string | null) => Promise<void>;
-  calculateGoalProgress: (goalId: string) => Promise<void>;
-  updateGoalStatus: (goalId: string) => Promise<void>;
   getGoalInsights: (goalId: string) => {
     daysRemaining: number;
     completedMilestones: number;
@@ -507,61 +505,6 @@ export const useAppStore = create<AppState>((set, get) => ({
         { profilePhotoURL: url },
         { merge: true }
       );
-    } catch (error) {
-      const e = error as FirestoreError;
-      set({ error: { type: "operation", message: e.message } });
-      throw error;
-    }
-  },
-
-  calculateGoalProgress: async (goalId) => {
-    const uid = get()._uid;
-    if (!uid) return;
-
-    try {
-      const goal = get().goals.find((g) => g.id === goalId);
-      if (!goal) throw new Error("Goal not found");
-
-      let progress = 0;
-      if (goal.metrics) {
-        progress = Math.min(
-          100,
-          (goal.metrics.current / goal.metrics.target) * 100
-        );
-      } else {
-        const completedWeight = goal.milestones
-          .filter((m) => m.completed)
-          .reduce((sum, m) => sum + m.weight, 0);
-        progress = Math.min(100, completedWeight);
-      }
-
-      await updateDoc(doc(db, "goals", goalId), {
-        progress,
-        lastUpdated: Timestamp.now(),
-      });
-    } catch (error) {
-      const e = error as FirestoreError;
-      set({ error: { type: "operation", message: e.message } });
-      throw error;
-    }
-  },
-
-  updateGoalStatus: async (goalId) => {
-    const uid = get()._uid;
-    if (!uid) return;
-
-    try {
-      const goal = get().goals.find((g) => g.id === goalId);
-      if (!goal) throw new Error("Goal not found");
-
-      let status: Goal["status"] = "not_started";
-      const now = new Date();
-
-      if (goal.progress >= 100) status = "completed";
-      else if (goal.progress > 0) status = "in_progress";
-      else if (goal.endDate < now) status = "overdue";
-
-      await updateDoc(doc(db, "goals", goalId), { status });
     } catch (error) {
       const e = error as FirestoreError;
       set({ error: { type: "operation", message: e.message } });
