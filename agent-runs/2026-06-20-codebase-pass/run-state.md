@@ -11,22 +11,21 @@
 
 ## Current State
 
-- Phase: Package and Dead-Code Cleanup
-- Task: T-010
-- Status: T-010 complete; commit-push checkpoint pending
-- Last command: npm run build
-- Last result: Passed after removing unused store methods
-- Last pushed commit: 5beeaec2a395e8ff5ef00773ca567fa1f271765b
+- Phase: Review
+- Task: T-006
+- Status: T-006 complete; commit-push checkpoint pending
+- Last command: npm audit --omit=dev --audit-level=moderate
+- Last result: Failed with 2 moderate advisories; forced breaking Next downgrade deferred
+- Last pushed commit: 736931f0f0b50a673da12ea3f3df577ed7f85788
 - Branch sync: dev matches origin/dev
-- Working tree: Dirty with in-scope dead-code cleanup and report updates
-- Next action: Commit/push dead-code cleanup, then review
+- Working tree: Dirty with in-scope review report updates
+- Next action: Commit/push review report, then run stabilization
 
 ## Dirty File Classification
 
 | Path | Classification | Owner/Reason |
 | --- | --- | --- |
-| `src/stores/app-store.ts` | In-scope source | T-010 remove unused store methods |
-| `agent-runs/2026-06-20-codebase-pass/` | Safe-to-commit | T-010 dead-code report, run-state, task queue, and findings status updates |
+| `agent-runs/2026-06-20-codebase-pass/` | Safe-to-commit | T-006 review report, run-state, and task queue updates |
 
 ## Blockers
 
