@@ -11,22 +11,25 @@
 
 ## Current State
 
-- Phase: Execute Fixes and Improvements
-- Task: T-009
-- Status: T-009 complete; commit-push checkpoint pending
-- Last command: npm run build
-- Last result: Passed after auth session failure cleanup
-- Last pushed commit: 20f26f3157c92946586d6bd0ab73f268c4540f61
+- Phase: Package and Dead-Code Cleanup
+- Task: T-005
+- Status: T-005 complete with deferred forced audit fix; commit-push checkpoint pending
+- Last command: npm outdated
+- Last result: Completed with only major/out-of-range updates remaining
+- Last pushed commit: 4a770a4888f8efee25d15a29990e8aa1ad1fd383
 - Branch sync: dev matches origin/dev
-- Working tree: Dirty with in-scope F-004 source fix and report updates
-- Next action: Commit/push F-004 fix, then run package cleanup
+- Working tree: Dirty with in-scope package/docs/report updates
+- Next action: Commit/push package cleanup, then review
 
 ## Dirty File Classification
 
 | Path | Classification | Owner/Reason |
 | --- | --- | --- |
-| `src/stores/auth-store.ts` | In-scope source | T-009 F-004 failed sign-in cleanup |
-| `agent-runs/2026-06-20-codebase-pass/` | Safe-to-commit | T-009 execution report, run-state, task queue, and findings status updates |
+| `package.json` | In-scope package config | T-005 adds lint script |
+| `package-lock.json` | In-scope lockfile | T-005 safe npm update |
+| `AGENTS.md` | Safe-to-commit | T-005 command guidance update |
+| `SPEC.md` | Safe-to-commit | T-005 validation/dependency state update |
+| `agent-runs/2026-06-20-codebase-pass/` | Safe-to-commit | T-005 package cleanup report, run-state, task queue, and findings status updates |
 
 ## Blockers
 

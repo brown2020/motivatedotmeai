@@ -17,11 +17,12 @@ Motivate.me AI is a Next.js App Router application for goal and habit tracking. 
 
 ```bash
 npm run dev
+npm run lint
 npm run build
 npm run start
 ```
 
-`package.json` does not currently define a lint, test, or typecheck script. ESLint dependencies and `eslint.config.mjs` exist, so use a direct ESLint invocation only after confirming the installed ESLint version supports the repo config.
+`package.json` does not currently define a test or standalone typecheck script. Use `npm run lint` and `npm run build` as the default local quality gates.
 
 ## Important Paths
 
@@ -40,4 +41,4 @@ npm run start
 - Treat `src/stores/app-store.ts` as a high-risk shared module because it owns subscriptions, writes, and derived state for several domains.
 - Prefer small, verifiable changes. Keep bug fixes separate from package updates and cleanup.
 - Do not invent product roadmap direction in codebase-health work. Update `SPEC.md` current-state and validation notes only when code evidence changes.
-- Before pushing code changes, run `npm run build` until stronger project scripts are added.
+- Before pushing code changes, run `npm run lint` and `npm run build` until stronger project scripts are added.

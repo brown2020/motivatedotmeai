@@ -34,20 +34,20 @@ Motivate.me AI is a goal and habit tracking web app. It helps signed-in users cr
 
 ## Validation State
 
-- `npm run build` is the strongest package-defined quality gate at the start of the 2026-06-20 codebase improvement pass.
-- No package-defined lint, test, or typecheck scripts currently exist.
-- ESLint configuration and dependencies exist, but there is no `npm run lint` script.
+- `npm run lint` and `npm run build` pass after the 2026-06-20 package cleanup.
+- No package-defined test or standalone typecheck scripts currently exist.
+- `npm audit --omit=dev --audit-level=moderate` still reports two moderate advisories through Next's nested PostCSS dependency; npm's suggested fix requires `--force` and would install a breaking Next downgrade, so it is deferred.
 
 ## Current Codebase Risks
 
 - `src/stores/app-store.ts` is a large shared store that mixes subscriptions, writes, derived calculations, and daily-log logic.
 - Some Firestore writes still derive updates from client-side store snapshots, which can be stale under rapid interaction or multiple tabs.
-- The repository has documented GitHub dependency vulnerabilities on push; package cleanup requires a dedicated dependency pass.
+- Dependency cleanup reduced production audit findings from 7 vulnerabilities to 2 moderate advisories. The remaining npm-suggested fix is unsafe because it requires a forced breaking Next downgrade.
 - Automated test coverage is not present in the package scripts.
 
 ## Non-Roadmap Improvement Goals
 
 - Keep route protection and server API authorization verifiable.
 - Make Firestore write paths safer under repeated or concurrent user actions.
-- Add explicit quality scripts when safe and align docs with package scripts.
+- Add explicit test/typecheck scripts when safe and align docs with package scripts.
 - Reduce shared-store complexity through small, behavior-preserving changes.
