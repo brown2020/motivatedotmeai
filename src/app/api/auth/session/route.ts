@@ -8,25 +8,46 @@ import {
   isDevSessionBypassEnabled,
 } from "@/lib/dev-session";
 
-// Allowed origins for CSRF protection
-const ALLOWED_ORIGINS = [
-  "http://localhost:3000",
-  "https://localhost:3000",
-];
+const LOCAL_DEV_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+function getOrigin(value: string): string | null {
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
+}
+
+function isLocalDevOrigin(origin: string): boolean {
+  try {
+    const url = new URL(origin);
+    return (
+      (url.protocol === "http:" || url.protocol === "https:") &&
+      LOCAL_DEV_HOSTS.has(url.hostname)
+    );
+  } catch {
+    return false;
+  }
+}
 
 function isValidOrigin(origin: string | null): boolean {
   if (!origin) return false;
 
-  // In production, check against allowed origins or same-site
   if (process.env.NODE_ENV === "production") {
-    // Allow same-origin requests (no Origin header) or matching origins
-    const prodOrigin = process.env.NEXT_PUBLIC_APP_URL;
+    const prodOrigin = process.env.NEXT_PUBLIC_APP_URL
+      ? getOrigin(process.env.NEXT_PUBLIC_APP_URL)
+      : null;
     if (prodOrigin && origin === prodOrigin) return true;
     return false;
   }
 
-  // In development, allow localhost
-  return ALLOWED_ORIGINS.some((allowed) => origin.startsWith(allowed));
+  return isLocalDevOrigin(origin);
+}
+
+function isValidReferer(referer: string | null): boolean {
+  if (!referer) return false;
+  const refererOrigin = getOrigin(referer);
+  return isValidOrigin(refererOrigin);
 }
 
 export async function POST(req: Request) {
@@ -35,19 +56,14 @@ export async function POST(req: Request) {
   const origin = headersList.get("origin");
   const referer = headersList.get("referer");
 
-  // Check if request comes from a valid origin
-  if (!isValidOrigin(origin)) {
-    // Allow requests without origin header (same-origin requests from some browsers)
-    // In dev, also allow requests with a localhost referer
-    const isDevLocalhost =
-      process.env.NODE_ENV !== "production" &&
-      referer?.startsWith("http://localhost");
-    if (origin !== null && !isDevLocalhost) {
-      return NextResponse.json(
-        { error: "Invalid request origin" },
-        { status: 403 }
-      );
-    }
+  if (
+    (origin && !isValidOrigin(origin)) ||
+    (!origin && referer && !isValidReferer(referer))
+  ) {
+    return NextResponse.json(
+      { error: "Invalid request origin" },
+      { status: 403 }
+    );
   }
 
   const isAdminConfigured = Boolean(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);

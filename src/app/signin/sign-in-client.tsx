@@ -1,11 +1,15 @@
 "use client";
 
+import { ErrorAlert } from "@/components/ErrorAlert";
 import { useAuthStore } from "@/stores/auth-store";
 import { useRouter } from "next/navigation";
 
 export default function SignInClient({ nextPath }: { nextPath?: string }) {
   const user = useAuthStore((s) => s.user);
   const isLoading = useAuthStore((s) => s.isLoading);
+  const isSigningIn = useAuthStore((s) => s.isSigningIn);
+  const authError = useAuthStore((s) => s.error);
+  const clearAuthError = useAuthStore((s) => s.clearError);
   const signInWithGoogle = useAuthStore((s) => s.signInWithGoogle);
   const signOut = useAuthStore((s) => s.signOut);
   const router = useRouter();
@@ -14,7 +18,7 @@ export default function SignInClient({ nextPath }: { nextPath?: string }) {
 
   const handleSignIn = async () => {
     const ok = await signInWithGoogle();
-    if (ok || user) router.push(target);
+    if (ok) router.push(target);
   };
 
   if (isLoading) {
@@ -54,12 +58,19 @@ export default function SignInClient({ nextPath }: { nextPath?: string }) {
             ) : (
               <button
                 onClick={handleSignIn}
-                className="rounded-md bg-indigo-600 px-6 py-3 text-lg font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                disabled={isSigningIn}
+                className="rounded-md bg-indigo-600 px-6 py-3 text-lg font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:cursor-not-allowed disabled:bg-indigo-400"
               >
-                Sign in with Google
+                {isSigningIn ? "Signing in..." : "Sign in with Google"}
               </button>
             )}
           </div>
+
+          {authError && (
+            <div className="mx-auto mt-6 max-w-md" aria-live="polite">
+              <ErrorAlert message={authError} onClose={clearAuthError} />
+            </div>
+          )}
         </div>
 
         <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
