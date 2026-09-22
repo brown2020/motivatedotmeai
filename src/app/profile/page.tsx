@@ -5,7 +5,7 @@ import { ErrorAlert } from "@/components/ErrorAlert";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { useAppStore } from "@/stores/app-store";
 import { useAuthStore } from "@/stores/auth-store";
-import { storage } from "@/lib/firebase";
+import { getClientStorage } from "@/lib/firebase";
 import Image from "next/image";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { useMemo, useState } from "react";
@@ -59,7 +59,7 @@ export default function ProfilePage() {
       const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
       const fileName = `profile-${crypto.randomUUID()}.${ext}`;
       const objectRef = ref(
-        storage,
+        getClientStorage(),
         `users/${authUser.uid}/profile/${fileName}`
       );
       await uploadBytes(objectRef, file, {
@@ -187,6 +187,8 @@ export default function ProfilePage() {
                     </span>
                     <input
                       type="time"
+                      id="reminder-time"
+                      aria-label="Daily reminder time"
                       className="rounded-md border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                       disabled={isSaving}
                       value={preferences?.reminderTimes?.[0] || ""}

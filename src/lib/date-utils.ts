@@ -28,3 +28,39 @@ export function parseDateKey(dateKey: string): Date {
   date.setHours(0, 0, 0, 0);
   return date;
 }
+
+const DISPLAY_DATE = new Intl.DateTimeFormat("en-US", {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+  timeZone: "UTC",
+});
+
+const DISPLAY_DATE_TIME = new Intl.DateTimeFormat("en-US", {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "UTC",
+});
+
+/** Deterministic display date (en-US / UTC) — safe for SSR and client. */
+export function formatDisplayDate(value: Date | string | number): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return DISPLAY_DATE.format(date);
+}
+
+/** Deterministic display date-time (en-US / UTC). */
+export function formatDisplayDateTime(value: Date | string | number): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return DISPLAY_DATE_TIME.format(date);
+}
+
+/** Static copyright year for SSR-safe footers (avoid new Date() in JSX). */
+export const COPYRIGHT_YEAR = 2026;
+
+/** Legal pages "last updated" stamp — fixed string, not runtime Date. */
+export const LEGAL_LAST_UPDATED = "June 20, 2026";

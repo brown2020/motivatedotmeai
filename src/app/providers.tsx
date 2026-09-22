@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAppStore } from "@/stores/app-store";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 
 const PROTECTED_PREFIXES = [
@@ -24,7 +24,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const isAuthLoading = useAuthStore((s) => s.isLoading);
   const initForUser = useAppStore((s) => s.initForUser);
   const darkMode = useAppStore((s) => s.user?.preferences.darkMode);
-  const router = useRouter();
   const pathname = usePathname() ?? "";
 
   useEffect(() => {
@@ -51,8 +50,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     const search =
       typeof window !== "undefined" ? window.location.search || "" : "";
     const next = encodeURIComponent(`${pathname}${search}`);
-    router.replace(`/signin?next=${next}`);
-  }, [isAuthLoading, pathname, router, uid]);
+    // Hard navigation after auth resolves — avoids client soft-nav flash/race.
+    window.location.assign(`/signin?next=${next}`);
+  }, [isAuthLoading, pathname, uid]);
 
   // Don't render protected content until auth state is resolved
   // This prevents the flash of authenticated content for unauthenticated users

@@ -1,22 +1,11 @@
 import Link from "next/link";
+import { PublicNav } from "@/components/PublicNav";
+import { Footer } from "@/components/Footer";
 
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
-      {/* Navigation */}
-      <nav className="px-4 sm:px-6 lg:px-8 py-4 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <Link href="/" className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-            Motivate.me
-          </Link>
-          <Link
-            href="/signin"
-            className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
-          >
-            Sign In
-          </Link>
-        </div>
-      </nav>
+      <PublicNav />
 
       {/* Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -83,27 +72,7 @@ export default function AboutPage() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-gray-200 dark:border-gray-700 py-8 mt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-gray-500 dark:text-gray-400 text-sm">
-              &copy; {new Date().getFullYear()} Motivate.me. All rights reserved.
-            </p>
-            <div className="flex gap-6">
-              <Link href="/about" className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-sm">
-                About
-              </Link>
-              <Link href="/privacy" className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-sm">
-                Privacy Policy
-              </Link>
-              <Link href="/terms" className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-sm">
-                Terms of Service
-              </Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer className="mt-16" />
     </div>
   );
 }

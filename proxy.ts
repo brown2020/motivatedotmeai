@@ -14,7 +14,7 @@ const PROTECTED_PREFIXES = [
   "/tracker",
   "/profile",
 ];
-const PUBLIC_PREFIXES = [SIGN_IN_PATH, "/about", "/privacy", "/terms"];
+const PUBLIC_PREFIXES = [SIGN_IN_PATH, "/signup", "/forgot-password", "/about", "/privacy", "/terms"];
 
 function isProtectedPath(pathname: string) {
   return PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix));

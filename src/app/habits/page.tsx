@@ -1,8 +1,10 @@
 "use client";
 
+import { formatDateKey } from "@/lib/date-utils";
+
 import Header from "@/components/Header";
 import { useAppStore } from "@/stores/app-store";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import HabitCheckbox from "@/components/ui/HabitCheckbox";
 
@@ -35,6 +37,13 @@ export default function HabitsPage() {
       frequency: "daily",
     });
   };
+
+  const todayKey = useSyncExternalStore(
+    () => () => {},
+    () => formatDateKey(new Date()),
+    () => ""
+  );
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -199,11 +208,11 @@ export default function HabitsPage() {
               <ul role="list" className="divide-y divide-gray-200">
                 {habits.map((habit) => {
                   const relatedGoal = goals.find((g) => g.id === habit.goalId);
-                  const completedToday = habit.completions.some(
-                    (date) =>
-                      new Date(date).toDateString() ===
-                      new Date().toDateString()
-                  );
+                  const completedToday =
+                    Boolean(todayKey) &&
+                    habit.completions.some(
+                      (date) => formatDateKey(new Date(date)) === todayKey
+                    );
 
                   return (
                     <li key={habit.id}>

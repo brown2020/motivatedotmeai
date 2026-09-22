@@ -19,7 +19,7 @@ import {
   limit as limitQuery,
   where,
 } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { getClientDb } from "@/lib/firebase";
 import type { Goal, Milestone } from "@/types/goals";
 import type { Habit } from "@/types/habits";
 import type { UserDoc, DailyLog } from "@/types/user";
@@ -171,7 +171,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     // Goals subscription
     const goalsQuery = query(
-      collection(db, "goals"),
+      collection(getClientDb(), "goals"),
       where("userId", "==", uid)
     );
     const unsubGoals = onSnapshot(
@@ -204,7 +204,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     // Habits subscription
     const habitsQuery = query(
-      collection(db, "habits"),
+      collection(getClientDb(), "habits"),
       where("userId", "==", uid)
     );
     const unsubHabits = onSnapshot(
@@ -228,7 +228,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     );
 
     // User doc: ensure exists + subscribe
-    const userRef = doc(db, "users", uid);
+    const userRef = doc(getClientDb(), "users", uid);
     setDoc(
       userRef,
       {
@@ -274,7 +274,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         lastUpdated: Timestamp.fromDate(goalData.lastUpdated),
       }) as Omit<FirestoreGoal, "id">;
 
-      await addDoc(collection(db, "goals"), newGoal);
+      await addDoc(collection(getClientDb(), "goals"), newGoal);
     } catch (error) {
       const e = error as FirestoreError;
       set({ error: { type: "operation", message: e.message } });
@@ -287,7 +287,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     try {
       const { id: goalId, ...goalWithoutId } = goalData;
-      const goalRef = doc(db, "goals", goalId);
+      const goalRef = doc(getClientDb(), "goals", goalId);
 
       const updatedGoal = omitUndefined({
         ...goalWithoutId,
@@ -312,7 +312,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!uid) return;
 
     try {
-      await deleteDoc(doc(db, "goals", goalId));
+      await deleteDoc(doc(getClientDb(), "goals", goalId));
     } catch (error) {
       const e = error as FirestoreError;
       set({ error: { type: "operation", message: e.message } });
@@ -329,9 +329,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       const { goal, habits } = buildQuickstartGoalAndHabits(template);
 
-      const batch = writeBatch(db);
+      const batch = writeBatch(getClientDb());
 
-      const goalRef = doc(collection(db, "goals"));
+      const goalRef = doc(collection(getClientDb(), "goals"));
       batch.set(
         goalRef,
         omitUndefined({
@@ -347,7 +347,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       );
 
       for (const habit of habits) {
-        const habitRef = doc(collection(db, "habits"));
+        const habitRef = doc(collection(getClientDb(), "habits"));
         batch.set(
           habitRef,
           omitUndefined({
@@ -361,7 +361,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
 
       batch.set(
-        doc(db, "users", uid),
+        doc(getClientDb(), "users", uid),
         { onboardingComplete: true, onboardingTemplateId: templateId },
         { merge: true }
       );
@@ -381,7 +381,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     try {
       await addDoc(
-        collection(db, "habits"),
+        collection(getClientDb(), "habits"),
         omitUndefined({
           ...habit,
           userId: uid,
@@ -401,7 +401,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!uid) return;
 
     try {
-      await deleteDoc(doc(db, "habits", habitId));
+      await deleteDoc(doc(getClientDb(), "habits", habitId));
     } catch (error) {
       const e = error as FirestoreError;
       set({ error: { type: "operation", message: e.message } });
@@ -422,7 +422,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         isSameLocalDay(d, now)
       );
 
-      const habitRef = doc(db, "habits", habitId);
+      const habitRef = doc(getClientDb(), "habits", habitId);
 
       if (todayCompletion) {
         // Remove today's completion atomically
@@ -449,7 +449,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!uid) return;
 
     try {
-      await updateDoc(doc(db, "goals", goalId), { progress });
+      await updateDoc(doc(getClientDb(), "goals", goalId), { progress });
     } catch (error) {
       const e = error as FirestoreError;
       set({ error: { type: "operation", message: e.message } });
@@ -469,7 +469,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         m.id === milestoneId ? { ...m, completed: true } : m
       );
 
-      await updateDoc(doc(db, "goals", goalId), {
+      await updateDoc(doc(getClientDb(), "goals", goalId), {
         milestones: updatedMilestones.map((m) => ({
           ...m,
           targetDate: Timestamp.fromDate(m.targetDate),
@@ -487,7 +487,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!uid) return;
 
     try {
-      await setDoc(doc(db, "users", uid), { preferences }, { merge: true });
+      await setDoc(doc(getClientDb(), "users", uid), { preferences }, { merge: true });
     } catch (error) {
       const e = error as FirestoreError;
       set({ error: { type: "operation", message: e.message } });
@@ -501,7 +501,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     try {
       await setDoc(
-        doc(db, "users", uid),
+        doc(getClientDb(), "users", uid),
         { profilePhotoURL: url },
         { merge: true }
       );
@@ -557,7 +557,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!uid) return;
 
     try {
-      const logRef = doc(db, "users", uid, "dailyLogs", dateKey);
+      const logRef = doc(getClientDb(), "users", uid, "dailyLogs", dateKey);
       const snap = await getDoc(logRef);
       if (!snap.exists()) {
         set((prev) => ({
@@ -605,7 +605,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const date = parseDateKey(dateKey);
 
     try {
-      const logRef = doc(db, "users", uid, "dailyLogs", dateKey);
+      const logRef = doc(getClientDb(), "users", uid, "dailyLogs", dateKey);
       const existing = get().dailyLogsByDateKey[dateKey];
       const now = Timestamp.now();
 
@@ -635,7 +635,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     try {
       const q = query(
-        collection(db, "users", uid, "dailyLogs"),
+        collection(getClientDb(), "users", uid, "dailyLogs"),
         orderBy("date", "desc"),
         limitQuery(max)
       );

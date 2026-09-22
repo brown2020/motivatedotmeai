@@ -1,18 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { ErrorAlert } from "@/components/ErrorAlert";
+import { PasswordField } from "@/components/auth/PasswordField";
 import { useAuthStore } from "@/stores/auth-store";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 function GoogleMark() {
   return (
-    <svg
-      aria-hidden="true"
-      className="h-5 w-5"
-      viewBox="0 0 24 24"
-      fill="none"
-    >
+    <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none">
       <path
         d="M21.6 12.23c0-.71-.06-1.4-.18-2.05H12v3.88h5.38a4.6 4.6 0 0 1-2 3.02v2.51h3.24c1.9-1.75 2.98-4.32 2.98-7.36Z"
         fill="#4285F4"
@@ -40,20 +36,32 @@ export default function SignInClient({ nextPath }: { nextPath?: string }) {
   const authError = useAuthStore((s) => s.error);
   const clearAuthError = useAuthStore((s) => s.clearError);
   const signInWithGoogle = useAuthStore((s) => s.signInWithGoogle);
+  const signInWithEmail = useAuthStore((s) => s.signInWithEmail);
   const signOut = useAuthStore((s) => s.signOut);
-  const router = useRouter();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const target = nextPath || "/dashboard";
 
-  const handleSignIn = async () => {
+  const navigateAfterAuth = () => {
+    // Hard nav after session cookie sync — avoids AuthGuard forever-spinner races.
+    window.location.assign(target);
+  };
+
+  const handleGoogle = async () => {
     const ok = await signInWithGoogle();
-    if (ok) router.push(target);
+    if (ok) navigateAfterAuth();
+  };
+
+  const handleEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const ok = await signInWithEmail(email, password);
+    if (ok) navigateAfterAuth();
   };
 
   if (isLoading) {
-    return (
-      <main className="min-h-screen bg-slate-50" />
-    );
+    return <main className="min-h-screen bg-slate-50" aria-busy="true" />;
   }
 
   return (
@@ -66,13 +74,10 @@ export default function SignInClient({ nextPath }: { nextPath?: string }) {
                 M
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-950">
-                  Motivate.me
-                </p>
+                <p className="text-sm font-semibold text-slate-950">Motivate.me</p>
                 <p className="text-sm text-slate-500">Goals, habits, momentum</p>
               </div>
             </div>
-
             <div className="mt-20 max-w-xl">
               <p className="text-sm font-medium uppercase tracking-wide text-indigo-600">
                 Today
@@ -86,39 +91,9 @@ export default function SignInClient({ nextPath }: { nextPath?: string }) {
               </p>
             </div>
           </div>
-
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-5 shadow-sm">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-              <div>
-                <p className="text-sm font-medium text-slate-950">
-                  Weekly focus
-                </p>
-                <p className="mt-1 text-sm text-slate-500">3 active goals</p>
-              </div>
-              <div className="rounded-md bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-700">
-                68%
-              </div>
-            </div>
-            <div className="mt-4 space-y-3">
-              {[
-                ["Morning run", "Done", "bg-emerald-500"],
-                ["Portfolio draft", "Next", "bg-amber-500"],
-                ["Read 20 pages", "Tonight", "bg-indigo-500"],
-              ].map(([label, status, color]) => (
-                <div
-                  key={label}
-                  className="flex items-center justify-between gap-4 rounded-md bg-white px-4 py-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className={`h-2.5 w-2.5 rounded-full ${color}`} />
-                    <span className="text-sm font-medium text-slate-700">
-                      {label}
-                    </span>
-                  </div>
-                  <span className="text-sm text-slate-500">{status}</span>
-                </div>
-              ))}
-            </div>
+            <p className="text-sm font-medium text-slate-950">Weekly focus</p>
+            <p className="mt-1 text-sm text-slate-500">3 active goals · 68%</p>
           </div>
         </section>
 
@@ -129,30 +104,26 @@ export default function SignInClient({ nextPath }: { nextPath?: string }) {
                 M
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-950">
-                  Motivate.me
-                </p>
+                <p className="text-sm font-semibold text-slate-950">Motivate.me</p>
                 <p className="text-sm text-slate-500">Goals and habits</p>
               </div>
             </div>
 
             <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-              <div>
-                <h2 className="text-2xl font-semibold tracking-tight text-slate-950">
-                  Welcome back
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Sign in to continue to your dashboard.
-                </p>
-              </div>
+              <h2 className="text-2xl font-semibold tracking-tight text-slate-950">
+                Welcome back
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Sign in to continue to your dashboard.
+              </p>
 
-              <div className="mt-8 space-y-3">
+              <div className="mt-8 space-y-4">
                 {user ? (
                   <>
                     <button
                       type="button"
-                      onClick={() => router.push(target)}
-                      className="flex w-full items-center justify-center rounded-md bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                      onClick={navigateAfterAuth}
+                      className="flex w-full items-center justify-center rounded-md bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500"
                     >
                       Continue
                     </button>
@@ -165,15 +136,80 @@ export default function SignInClient({ nextPath }: { nextPath?: string }) {
                     </button>
                   </>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={handleSignIn}
-                    disabled={isSigningIn}
-                    className="flex w-full items-center justify-center gap-3 rounded-md bg-slate-950 px-4 py-3 text-sm font-semibold text-white shadow-xs hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950 disabled:cursor-not-allowed disabled:bg-slate-400"
-                  >
-                    <GoogleMark />
-                    {isSigningIn ? "Signing in..." : "Continue with Google"}
-                  </button>
+                  <>
+                    <form onSubmit={handleEmail} className="space-y-4">
+                      <div>
+                        <label
+                          htmlFor="signin-email"
+                          className="block text-sm font-medium text-slate-700"
+                        >
+                          Email
+                        </label>
+                        <input
+                          id="signin-email"
+                          name="email"
+                          type="email"
+                          autoComplete="email"
+                          required
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          disabled={isSigningIn}
+                          className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-xs focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                      <PasswordField
+                        label="Password"
+                        value={password}
+                        onChange={setPassword}
+                        disabled={isSigningIn}
+                        autoComplete="current-password"
+                      />
+                      <div className="flex justify-end">
+                        <Link
+                          href="/forgot-password"
+                          className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+                        >
+                          Forgot password?
+                        </Link>
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={isSigningIn}
+                        className="flex w-full items-center justify-center rounded-md bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-400"
+                      >
+                        {isSigningIn ? "Signing in…" : "Sign in with email"}
+                      </button>
+                    </form>
+
+                    <div className="relative py-1">
+                      <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                        <div className="w-full border-t border-slate-200" />
+                      </div>
+                      <div className="relative flex justify-center text-xs">
+                        <span className="bg-white px-2 text-slate-500">or</span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleGoogle}
+                      disabled={isSigningIn}
+                      className="flex w-full items-center justify-center gap-3 rounded-md bg-slate-950 px-4 py-3 text-sm font-semibold text-white shadow-xs hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+                    >
+                      <GoogleMark />
+                      {isSigningIn ? "Signing in…" : "Continue with Google"}
+                    </button>
+
+                    <p className="text-center text-sm text-slate-600">
+                      New here?{" "}
+                      <Link
+                        href="/signup"
+                        className="font-medium text-indigo-600 hover:text-indigo-500"
+                      >
+                        Create an account
+                      </Link>
+                    </p>
+                  </>
                 )}
               </div>
 
@@ -185,17 +221,11 @@ export default function SignInClient({ nextPath }: { nextPath?: string }) {
 
               <p className="mt-6 text-center text-xs leading-5 text-slate-500">
                 By continuing, you agree to the{" "}
-                <Link
-                  href="/terms"
-                  className="font-medium text-slate-700 underline-offset-4 hover:underline"
-                >
+                <Link href="/terms" className="font-medium text-slate-700 underline-offset-4 hover:underline">
                   Terms
                 </Link>{" "}
                 and{" "}
-                <Link
-                  href="/privacy"
-                  className="font-medium text-slate-700 underline-offset-4 hover:underline"
-                >
+                <Link href="/privacy" className="font-medium text-slate-700 underline-offset-4 hover:underline">
                   Privacy Policy
                 </Link>
                 .

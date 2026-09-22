@@ -1,0 +1,22 @@
+name: CI
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      # Deferred Firebase client init tolerates missing NEXT_PUBLIC_* secrets.
+      # Never inline NEXT_PUBLIC_*/API keys here — use ${{ secrets.* }} on a
+      # dedicated step only if a future gate truly requires them.
+      - run: npm ci --ignore-scripts
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build

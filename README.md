@@ -62,11 +62,20 @@ Then open `http://localhost:3000`.
 
 ```bash
 npm run dev
+npm run lint
+npm run typecheck
+npm test
 npm run build
 npm run start
-npm run lint
+npm run doctor
 ```
 
 ### License
 
 This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**. See `LICENSE.md`.
+
+### CI
+
+GitHub Actions (`.github/workflows/ci.yml`) runs lint, typecheck, tests, and production build on `dev`/`main`.
+
+Client Firebase config is **not** inlined in the workflow. Prefer repository secrets named like the env vars above (`NEXT_PUBLIC_FIREBASE_*`). The app uses **deferred** Firebase client init so CI builds succeed when those secrets are unset.

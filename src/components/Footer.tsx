@@ -1,14 +1,15 @@
-"use client";
-
 import Link from "next/link";
+import { COPYRIGHT_YEAR } from "@/lib/date-utils";
 
-export function Footer() {
+export function Footer({ className = "" }: { className?: string }) {
   return (
-    <footer className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 py-8">
+    <footer
+      className={`border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 py-8 ${className}`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-gray-500 dark:text-gray-400 text-sm">
-            &copy; {new Date().getFullYear()} Motivate.me. All rights reserved.
+            &copy; {COPYRIGHT_YEAR} Motivate.me. All rights reserved.
           </p>
           <div className="flex gap-6">
             <Link

@@ -6,9 +6,9 @@ Motivate.me AI is a goal and habit tracking web app. It helps signed-in users cr
 
 ## Current User-Facing Surface
 
-- Public pages: home, about, privacy, terms, and sign-in.
+- Public pages: home, about, privacy, terms, sign-in, sign-up, and forgot-password.
 - Protected pages: dashboard, goals, goal detail, habits, habit detail, tracker, and profile.
-- Auth flow: Google sign-in through Firebase client auth, followed by server session-cookie creation through `/api/auth/session`.
+- Auth flow: email/password (sign-in, create-account, forgot-password with show/hide password) and Google sign-in through Firebase client auth, followed by server session-cookie creation through `/api/auth/session`.
 - Goal workflows: create, update, delete, view progress, complete milestones, apply quickstart templates, and request AI goal insights.
 - Habit workflows: create, delete, toggle today's completion, and view analytics.
 - Tracker workflows: load and save daily logs with mood, energy, weight, and notes.
@@ -34,8 +34,8 @@ Motivate.me AI is a goal and habit tracking web app. It helps signed-in users cr
 
 ## Validation State
 
-- `npm run lint` and `npm run build` pass after the 2026-06-20 package cleanup.
-- No package-defined test or standalone typecheck scripts currently exist.
+- `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build` are the local quality gates.
+- React Doctor score target is 100 (`npm run doctor`).
 - `npm audit --omit=dev --audit-level=moderate` still reports two moderate advisories through Next's nested PostCSS dependency; npm's suggested fix requires `--force` and would install a breaking Next downgrade, so it is deferred.
 
 ## Current Codebase Risks

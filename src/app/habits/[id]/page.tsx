@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDisplayDateTime } from "@/lib/date-utils";
+
 import Header from "@/components/Header";
 import { ErrorAlert } from "@/components/ErrorAlert";
 import { HabitAnalytics } from "@/components/HabitAnalytics";
@@ -156,7 +158,7 @@ export default function HabitDetailsPage() {
                         key={`${habit.id}-${idx}`}
                         className="text-sm text-gray-600"
                       >
-                        {new Date(d).toLocaleString()}
+                        {formatDisplayDateTime(d)}
                       </li>
                     ))}
                   {habit.completions.length === 0 && (

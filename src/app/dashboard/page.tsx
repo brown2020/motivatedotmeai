@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDisplayDate } from "@/lib/date-utils";
+
 import Header from "@/components/Header";
 import { useAppStore } from "@/stores/app-store";
 import { QuickstartTemplatePicker } from "@/components/QuickstartTemplatePicker";
@@ -53,7 +55,7 @@ export default function DashboardPage() {
         type: "habit" as const,
         id: `${h.id}:${new Date(d).getTime()}`,
         title: h.name,
-        subtitle: `Completed ${new Date(d).toLocaleDateString()}`,
+        subtitle: `Completed ${formatDisplayDate(d)}`,
         ts: new Date(d).getTime(),
         href: `/habits/${h.id}`,
       }))

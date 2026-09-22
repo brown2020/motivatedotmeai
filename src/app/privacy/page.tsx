@@ -1,27 +1,18 @@
 import Link from "next/link";
+import { PublicNav } from "@/components/PublicNav";
+import { Footer } from "@/components/Footer";
+import { LegalBulletList } from "@/components/LegalBulletList";
+import { LEGAL_LAST_UPDATED } from "@/lib/date-utils";
 
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
-      {/* Navigation */}
-      <nav className="px-4 sm:px-6 lg:px-8 py-4 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <Link href="/" className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-            Motivate.me
-          </Link>
-          <Link
-            href="/signin"
-            className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
-          >
-            Sign In
-          </Link>
-        </div>
-      </nav>
+      <PublicNav />
 
       {/* Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Privacy Policy</h1>
-        <p className="text-gray-500 dark:text-gray-400 mb-8">Last updated: {new Date().toLocaleDateString()}</p>
+        <p className="text-gray-500 dark:text-gray-400 mb-8">Last updated: {LEGAL_LAST_UPDATED}</p>
 
         <div className="prose prose-lg dark:prose-invert max-w-none space-y-8">
           <section>
@@ -56,24 +47,17 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">How We Use Your Information</h2>
-            <ul className="space-y-2 text-gray-600 dark:text-gray-300">
-              <li className="flex items-start">
-                <span className="text-indigo-600 dark:text-indigo-400 mr-3">•</span>
-                <span>To provide and maintain our service</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-indigo-600 dark:text-indigo-400 mr-3">•</span>
-                <span>To personalize your experience and provide AI-powered insights</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-indigo-600 dark:text-indigo-400 mr-3">•</span>
-                <span>To improve our application and develop new features</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-indigo-600 dark:text-indigo-400 mr-3">•</span>
-                <span>To communicate with you about service updates</span>
-              </li>
-            </ul>
+            <LegalBulletList
+              className="space-y-2 text-gray-600 dark:text-gray-300"
+              items={
+                [
+                  { id: "to-provide-and-maintain-our-service", content: <>To provide and maintain our service</> },
+                  { id: "to-personalize-your-experience-and-provide-ai-po", content: <>To personalize your experience and provide AI-powered insights</> },
+                  { id: "to-improve-our-application-and-develop-new-featu", content: <>To improve our application and develop new features</> },
+                  { id: "to-communicate-with-you-about-service-updates", content: <>To communicate with you about service updates</> }
+                ]
+              }
+            />
           </section>
 
           <section>
@@ -90,16 +74,15 @@ export default function PrivacyPage() {
             <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
               We use the following third-party services:
             </p>
-            <ul className="mt-2 space-y-2 text-gray-600 dark:text-gray-300">
-              <li className="flex items-start">
-                <span className="text-indigo-600 dark:text-indigo-400 mr-3">•</span>
-                <span><strong>Firebase (Google):</strong> Authentication, database, and storage</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-indigo-600 dark:text-indigo-400 mr-3">•</span>
-                <span><strong>OpenAI:</strong> AI-powered coaching features (your goal data may be sent to generate insights)</span>
-              </li>
-            </ul>
+            <LegalBulletList
+              className="mt-2 space-y-2 text-gray-600 dark:text-gray-300"
+              items={
+                [
+                  { id: "firebase-google-authentication-database-and-stor", content: <><strong>Firebase (Google):</strong> Authentication, database, and storage</> },
+                  { id: "openai-ai-powered-coaching-features-your-goal-da", content: <><strong>OpenAI:</strong> AI-powered coaching features (your goal data may be sent to generate insights)</> }
+                ]
+              }
+            />
           </section>
 
           <section>
@@ -129,27 +112,7 @@ export default function PrivacyPage() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-gray-200 dark:border-gray-700 py-8 mt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-gray-500 dark:text-gray-400 text-sm">
-              &copy; {new Date().getFullYear()} Motivate.me. All rights reserved.
-            </p>
-            <div className="flex gap-6">
-              <Link href="/about" className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-sm">
-                About
-              </Link>
-              <Link href="/privacy" className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-sm">
-                Privacy Policy
-              </Link>
-              <Link href="/terms" className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-sm">
-                Terms of Service
-              </Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer className="mt-16" />
     </div>
   );
 }

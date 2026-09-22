@@ -18,11 +18,14 @@ Motivate.me AI is a Next.js App Router application for goal and habit tracking. 
 ```bash
 npm run dev
 npm run lint
+npm run typecheck
+npm test
 npm run build
 npm run start
+npm run doctor
 ```
 
-`package.json` does not currently define a test or standalone typecheck script. Use `npm run lint` and `npm run build` as the default local quality gates.
+Use `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build` as the default local quality gates. `npm run doctor` runs React Doctor.
 
 ## Important Paths
 
@@ -32,7 +35,7 @@ npm run start
 - `src/stores/app-store.ts` owns goal, habit, user, and daily-log Firestore state.
 - `src/stores/auth-store.ts` owns Firebase auth state and session-cookie sync.
 - `src/types/` contains goal, habit, and user domain types.
-- `proxy.ts` protects authenticated routes and redirects public signed-in traffic.
+- `proxy.ts` protects authenticated routes and redirects public signed-in traffic. Public auth routes include `/signin`, `/signup`, and `/forgot-password`.
 
 ## Operating Notes
 
