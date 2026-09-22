@@ -69,7 +69,7 @@ export default async function HomePage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Goal Tracking</h3>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Goal Tracking</h2>
             <p className="text-gray-600 dark:text-gray-300">
               Set meaningful goals with milestones, track progress, and celebrate achievements along the way.
             </p>
@@ -81,7 +81,7 @@ export default async function HomePage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Habit Building</h3>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Habit Building</h2>
             <p className="text-gray-600 dark:text-gray-300">
               Build positive habits with daily tracking, streaks, and gentle reminders to keep you on track.
             </p>
@@ -93,7 +93,7 @@ export default async function HomePage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">AI Coaching</h3>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">AI Coaching</h2>
             <p className="text-gray-600 dark:text-gray-300">
               Get personalized insights and coaching from AI to help you overcome obstacles and stay motivated.
             </p>
