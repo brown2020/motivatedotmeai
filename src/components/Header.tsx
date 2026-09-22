@@ -92,7 +92,10 @@ export default function Header() {
             {/* Profile dropdown */}
             <div className="relative ml-3">
               <button
+                type="button"
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
+                aria-label="Open account menu"
+                aria-expanded={isProfileOpen}
                 className="flex items-center rounded-full bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
               >
                 <Image
@@ -120,6 +123,7 @@ export default function Header() {
                     Profile
                   </Link>
                   <button
+                    type="button"
                     onClick={signOut}
                     className="block w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                   >
