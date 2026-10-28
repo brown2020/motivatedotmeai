@@ -8,21 +8,11 @@ This plan identifies bugs, design issues, missing pages, security gaps, dead cod
 
 ## Critical Issues
 
-### 1. Middleware Not Registered (Route Protection Broken)
+### 1. Middleware Not Registered (Route Protection Broken) — fixed
 
-**Location:** `proxy.ts` (project root)
+**Location:** `src/proxy.ts`
 
-**Problem:** The middleware file exists but is **not registered** with Next.js. There's no `src/middleware.ts` that exports it.
-
-**Impact:** Server-side route protection is completely non-functional. Protected routes rely only on client-side guards.
-
-**Fix:**
-```typescript
-// Create src/middleware.ts
-export { default, config } from "../../proxy";
-```
-
-Or move `proxy.ts` to `src/middleware.ts` directly.
+Next.js 16 only loads `proxy.ts` from the directory that contains `app`. The file now lives at `src/proxy.ts`. Do not move it back to the repo root, and do not add a second `middleware.ts`.
 
 ---
 

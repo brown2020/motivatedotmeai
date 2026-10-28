@@ -10,7 +10,7 @@ Motivate.me AI is a Next.js App Router application for goal and habit tracking. 
 - Tailwind CSS 4 through PostCSS.
 - Zustand stores in `src/stores/`.
 - Firebase client SDK in `src/lib/firebase.ts` and Firebase Admin in `src/lib/firebase-admin.ts`.
-- Route protection is implemented in root `proxy.ts`, with session verification through `/api/auth/verify`.
+- Route protection is implemented in `src/proxy.ts` (beside `src/app`), with session verification through `/api/auth/verify`.
 - Firestore and Storage rules live in `firestore.rules` and `storage.rules`.
 
 ## Commands
@@ -35,7 +35,7 @@ Use `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build` as the 
 - `src/stores/app-store.ts` owns goal, habit, user, and daily-log Firestore state.
 - `src/stores/auth-store.ts` owns Firebase auth state and session-cookie sync.
 - `src/types/` contains goal, habit, and user domain types.
-- `proxy.ts` protects authenticated routes and redirects public signed-in traffic. Public auth routes include `/signin`, `/signup`, and `/forgot-password`.
+- `src/proxy.ts` protects authenticated routes and redirects public signed-in traffic. Public auth routes include `/signin`, `/signup`, and `/forgot-password`.
 
 ## Operating Notes
 

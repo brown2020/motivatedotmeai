@@ -75,7 +75,7 @@ src/
     ├── index.ts            # Re-exports all types
     └── user.ts             # User and daily log types
 
-proxy.ts                    # Next.js 16 route protection middleware
+src/proxy.ts               # Next.js 16 route protection (must sit next to src/app)
 ```
 
 ## Architecture Patterns
@@ -90,7 +90,7 @@ proxy.ts                    # Next.js 16 route protection middleware
 ### Authentication Flow
 1. Client: Firebase Google popup auth
 2. Server: httpOnly session cookies (14-day expiry, `sameSite: strict`)
-3. Middleware (`proxy.ts`): Validates session on protected routes
+3. `src/proxy.ts`: Validates session on protected routes
 4. CSRF protection via origin header validation
 5. Dev mode: `ALLOW_DEV_SESSION=1` bypasses Firebase Admin (never in production)
 
@@ -179,8 +179,8 @@ ALLOW_DEV_SESSION=1             # Bypass Firebase Admin locally
 1. Create folder in `src/app/` with `page.tsx`
 2. Add `"use client"` if client-side interactivity needed
 3. Use `useAuthStore()` and `useAppStore()` for state
-4. Add to `PROTECTED_PREFIXES` in `proxy.ts` if auth required
-5. Add to `PUBLIC_PREFIXES` in `proxy.ts` if public
+4. Add to `PROTECTED_PREFIXES` in `src/proxy.ts` if auth required
+5. Add to `PUBLIC_PREFIXES` in `src/proxy.ts` if public
 
 ### Adding an API route
 1. Create folder in `src/app/api/` with `route.ts`
