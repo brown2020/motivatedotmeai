@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useAppStore } from "@/stores/app-store";
 import { ErrorAlert } from "./ErrorAlert";
 
@@ -12,40 +12,11 @@ export function GoalAiCoach({ goalId }: { goalId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [output, setOutput] = useState<string>("");
 
-  const payload = useMemo(() => {
-    if (!goal) return null;
-
-    return {
-      goal: {
-        id: goal.id,
-        name: goal.name,
-        reason: goal.reason,
-        category: goal.category,
-        priority: goal.priority,
-        progress: goal.progress,
-        status: goal.status,
-        endDateISO: new Date(goal.endDate).toISOString(),
-        lastUpdatedISO: goal.lastUpdated
-          ? new Date(goal.lastUpdated).toISOString()
-          : undefined,
-        tags: goal.tags,
-        milestones: goal.milestones.map((m) => ({
-          id: m.id,
-          name: m.name,
-          targetDateISO: new Date(m.targetDate).toISOString(),
-          completed: m.completed,
-          weight: m.weight,
-        })),
-      },
-    };
-  }, [goal]);
-
   if (!goal) {
     return <ErrorAlert message="Goal not found" />;
   }
 
   const run = async () => {
-    if (!payload) return;
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -58,7 +29,7 @@ export function GoalAiCoach({ goalId }: { goalId: string }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ goalId }),
         signal: controller.signal,
       });
 

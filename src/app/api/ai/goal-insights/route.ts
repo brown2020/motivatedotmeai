@@ -3,43 +3,23 @@ import { z } from "zod";
 import { streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { requireSessionUserId } from "@/lib/require-session";
+import { getAdminFirestore } from "@/lib/firebase-admin";
+import { aiInsightLimiter } from "@/lib/rate-limit";
+import {
+  buildGoalCoachPrompt,
+  goalBelongsToUser,
+  normalizeCoachGoal,
+} from "@/lib/goal-coach";
 
-const GoalPayloadSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  reason: z.string().min(1),
-  category: z.string().optional(),
-  priority: z.string().optional(),
-  progress: z.number().min(0).max(100),
-  status: z.string().optional(),
-  endDateISO: z.string().min(1),
-  lastUpdatedISO: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-  milestones: z
-    .array(
-      z.object({
-        id: z.string(),
-        name: z.string(),
-        targetDateISO: z.string(),
-        completed: z.boolean(),
-        weight: z.number().min(0).max(100),
-      })
-    )
-    .default([]),
-});
+const MAX_BODY_CHARS = 8_192;
 
 const RequestSchema = z.object({
-  goal: GoalPayloadSchema,
+  goalId: z.string().trim().min(1).max(128),
 });
-
-function daysBetween(from: Date, to: Date) {
-  return Math.ceil((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
-}
 
 export async function POST(req: Request) {
   try {
-    // Require auth (session cookie) before spending tokens.
-    await requireSessionUserId();
+    const uid = await requireSessionUserId();
 
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(
@@ -48,15 +28,19 @@ export async function POST(req: Request) {
       );
     }
 
-    const json = await req.json();
+    const raw = await req.text();
+    if (raw.length > MAX_BODY_CHARS) {
+      return NextResponse.json({ error: "Request too large" }, { status: 413 });
+    }
 
-    // `useChat` sends the payload under `data` by default.
-    const candidate =
-      json && typeof json === "object" && json !== null && "data" in json
-        ? (json as { data?: unknown }).data
-        : json;
+    let json: unknown;
+    try {
+      json = JSON.parse(raw);
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
 
-    const parsed = RequestSchema.safeParse(candidate);
+    const parsed = RequestSchema.safeParse(json);
     if (!parsed.success) {
       return NextResponse.json(
         { error: "Invalid request", issues: parsed.error.flatten() },
@@ -64,62 +48,35 @@ export async function POST(req: Request) {
       );
     }
 
-    const { goal } = parsed.data;
-
-    const now = new Date();
-    const endDate = new Date(goal.endDateISO);
-    const daysRemaining = daysBetween(now, endDate);
-
-    const milestones = goal.milestones;
-    const completedMilestones = milestones.filter((m) => m.completed).length;
-    const totalMilestones = milestones.length;
-    const remainingMilestones = milestones
-      .filter((m) => !m.completed)
-      .sort(
-        (a, b) =>
-          new Date(a.targetDateISO).getTime() -
-          new Date(b.targetDateISO).getTime()
+    if (!aiInsightLimiter.allow(uid)) {
+      return NextResponse.json(
+        { error: "Too many coaching requests. Try again later." },
+        { status: 429 }
       );
+    }
 
-    const nextMilestone = remainingMilestones[0];
+    const snap = await getAdminFirestore().collection("goals").doc(parsed.data.goalId).get();
+    if (!snap.exists) {
+      return NextResponse.json({ error: "Goal not found" }, { status: 404 });
+    }
 
-    const system =
-      "You are a pragmatic, encouraging coach for goal achievement. " +
-      "You produce concise, structured guidance with clear next actions. " +
-      "Never shame the user. Avoid generic advice. Be specific to the goal data.";
+    const data = snap.data() ?? {};
+    if (!goalBelongsToUser(data.userId, uid)) {
+      return NextResponse.json({ error: "Goal not found" }, { status: 404 });
+    }
 
-    const prompt = [
-      `Goal: ${goal.name}`,
-      `Why it matters: ${goal.reason}`,
-      `Progress: ${goal.progress}%`,
-      `Due date: ${endDate
-        .toISOString()
-        .slice(0, 10)} (${daysRemaining} days remaining)`,
-      goal.category ? `Category: ${goal.category}` : undefined,
-      goal.priority ? `Priority: ${goal.priority}` : undefined,
-      goal.status ? `Status: ${goal.status}` : undefined,
-      goal.tags?.length ? `Tags: ${goal.tags.join(", ")}` : undefined,
-      `Milestones completed: ${completedMilestones}/${totalMilestones}`,
-      nextMilestone
-        ? `Next milestone: ${nextMilestone.name} due ${new Date(
-            nextMilestone.targetDateISO
-          )
-            .toISOString()
-            .slice(0, 10)} (weight ${nextMilestone.weight}%)`
-        : "Next milestone: none",
-      "\nOutput format:\n" +
-        "1) One-sentence diagnosis of momentum and risk\n" +
-        "2) 3 concrete actions for the next 7 days (bulleted)\n" +
-        "3) If behind schedule, propose an adjusted milestone plan (max 3 bullets)\n" +
-        "4) A short motivational line tied to the user's stated reason\n",
-    ]
-      .filter(Boolean)
-      .join("\n");
+    const goal = normalizeCoachGoal(data);
+    if (!goal) {
+      return NextResponse.json({ error: "Goal is missing required fields" }, { status: 400 });
+    }
 
     const result = await streamText({
       model: openai("gpt-4o-mini"),
-      system,
-      prompt,
+      system:
+        "You are a pragmatic, encouraging coach for goal achievement. " +
+        "You produce concise, structured guidance with clear next actions. " +
+        "Never shame the user. Avoid generic advice. Be specific to the goal data.",
+      prompt: buildGoalCoachPrompt(goal),
       temperature: 0.4,
       maxOutputTokens: 450,
     });

@@ -14,6 +14,7 @@ describe("require-session contract", () => {
       "utf8"
     );
     assert.match(src, /requireSessionUserId/);
+    assert.match(src, /goalBelongsToUser/);
   });
 
   it("session verify route exists for proxy checks", () => {
