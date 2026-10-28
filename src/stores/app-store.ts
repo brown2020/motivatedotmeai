@@ -9,9 +9,11 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  deleteField,
   getDocs,
   onSnapshot,
   query,
+  runTransaction,
   setDoc,
   updateDoc,
   writeBatch,
@@ -27,7 +29,8 @@ import {
   QUICKSTART_TEMPLATES,
   buildQuickstartGoalAndHabits,
 } from "@/lib/quickstart-templates";
-import { isSameLocalDay, parseDateKey } from "@/lib/date-utils";
+import { calendarDaysRemaining, isSameLocalDay, parseDateKey, startOfLocalDay } from "@/lib/date-utils";
+import { deriveGoalStatus } from "@/lib/goal-status";
 
 // Re-export types for convenience
 export type { DailyLog } from "@/types/user";
@@ -49,11 +52,12 @@ interface FirestoreMilestone extends Omit<Milestone, "targetDate"> {
 }
 
 interface FirestoreGoal
-  extends Omit<Goal, "endDate" | "milestones" | "lastUpdated"> {
+  extends Omit<Goal, "endDate" | "milestones" | "lastUpdated" | "startDate"> {
   endDate: Timestamp;
   milestones: FirestoreMilestone[];
   userId: string;
   lastUpdated: Timestamp;
+  startDate?: Timestamp;
 }
 
 interface FirestoreHabit extends Omit<Habit, "completions"> {
@@ -109,6 +113,18 @@ interface AppState {
 
   _uid: string | null;
   _unsubs: Unsub[];
+}
+
+function timestampToDate(value: unknown): Date | null {
+  if (!value || typeof value !== "object" || !("toDate" in value)) return null;
+  const toDate = (value as { toDate?: unknown }).toDate;
+  if (typeof toDate !== "function") return null;
+  try {
+    const date = (toDate as () => Date).call(value);
+    return date instanceof Date && !Number.isNaN(date.getTime()) ? date : null;
+  } catch {
+    return null;
+  }
 }
 
 function omitUndefined<T extends Record<string, unknown>>(obj: T) {
@@ -177,27 +193,57 @@ export const useAppStore = create<AppState>((set, get) => ({
     const unsubGoals = onSnapshot(
       goalsQuery,
       (snapshot) => {
-        const goalsData: Goal[] = [];
-        snapshot.forEach((d) => {
-          const data = d.data() as FirestoreGoal;
-          goalsData.push({
-            ...data,
-            id: d.id,
-            endDate: data.endDate.toDate(),
-            milestones: data.milestones.map((m) => ({
-              ...m,
-              targetDate: m.targetDate.toDate(),
-            })),
-            tags: data.tags || [],
-            lastUpdated: data.lastUpdated
-              ? data.lastUpdated.toDate()
-              : new Date(),
+        try {
+          const goalsData: Goal[] = [];
+          let skipped = false;
+          snapshot.forEach((d) => {
+            const data = d.data() as FirestoreGoal;
+            const endDate = timestampToDate(data.endDate);
+            if (!endDate) {
+              skipped = true;
+              return;
+            }
+            const rawMilestones = Array.isArray(data.milestones)
+              ? data.milestones
+              : [];
+            const milestones = rawMilestones.flatMap((m) => {
+              const targetDate = timestampToDate(m?.targetDate);
+              if (!m || !targetDate) return [];
+              return [{ ...m, targetDate }];
+            });
+            const progress =
+              typeof data.progress === "number" && Number.isFinite(data.progress)
+                ? data.progress
+                : 0;
+            goalsData.push({
+              ...data,
+              id: d.id,
+              endDate,
+              milestones,
+              progress,
+              tags: Array.isArray(data.tags) ? data.tags : [],
+              lastUpdated: timestampToDate(data.lastUpdated) ?? new Date(),
+              startDate: timestampToDate(data.startDate) ?? undefined,
+              status: deriveGoalStatus(endDate, progress),
+            });
           });
-        });
-        set((prev) => ({
-          goals: goalsData,
-          loading: { ...prev.loading, goals: false },
-        }));
+          set((prev) => ({
+            goals: goalsData,
+            loading: { ...prev.loading, goals: false },
+            error: skipped
+              ? {
+                  type: "goals",
+                  message: "Some goals could not be read and were skipped.",
+                }
+              : prev.error?.type === "goals"
+                ? null
+                : prev.error,
+          }));
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : "Could not read goals.";
+          set({ error: { type: "goals", message } });
+        }
       },
       (error) => handleFirestoreError(error, "goals")
     );
@@ -210,28 +256,40 @@ export const useAppStore = create<AppState>((set, get) => ({
     const unsubHabits = onSnapshot(
       habitsQuery,
       (snapshot) => {
-        const habitsData: Habit[] = [];
-        snapshot.forEach((d) => {
-          const data = d.data() as FirestoreHabit;
-          habitsData.push({
-            ...data,
-            id: d.id,
-            completions: (data.completions || []).map((t) => t.toDate()),
+        try {
+          const habitsData: Habit[] = [];
+          snapshot.forEach((d) => {
+            const data = d.data() as FirestoreHabit;
+            const raw = Array.isArray(data.completions) ? data.completions : [];
+            habitsData.push({
+              ...data,
+              id: d.id,
+              completions: raw.flatMap((t) => {
+                const date = timestampToDate(t);
+                return date ? [date] : [];
+              }),
+            });
           });
-        });
-        set((prev) => ({
-          habits: habitsData,
-          loading: { ...prev.loading, habits: false },
-        }));
+          set((prev) => ({
+            habits: habitsData,
+            loading: { ...prev.loading, habits: false },
+          }));
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : "Could not read habits.";
+          set({ error: { type: "habits", message } });
+        }
       },
       (error) => handleFirestoreError(error, "habits")
     );
 
-    // User doc: ensure exists + subscribe
+    // Create the profile once. Merging these defaults on every load wipes
+    // photo, onboarding, and preferences.
     const userRef = doc(getClientDb(), "users", uid);
-    setDoc(
-      userRef,
-      {
+    runTransaction(getClientDb(), async (tx) => {
+      const existing = await tx.get(userRef);
+      if (existing.exists()) return;
+      tx.set(userRef, {
         userId: uid,
         profilePhotoURL: null,
         onboardingComplete: false,
@@ -240,9 +298,8 @@ export const useAppStore = create<AppState>((set, get) => ({
           notifications: true,
           reminderTimes: [],
         },
-      } satisfies UserDoc,
-      { merge: true }
-    ).catch((error) => handleFirestoreError(error as FirestoreError, "user"));
+      } satisfies UserDoc);
+    }).catch((error) => handleFirestoreError(error as FirestoreError, "user"));
 
     const unsubUser = onSnapshot(
       userRef,
@@ -267,6 +324,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         ...goalData,
         userId: uid,
         endDate: Timestamp.fromDate(goalData.endDate),
+        startDate: Timestamp.fromDate(goalData.startDate ?? goalData.lastUpdated),
         milestones: goalData.milestones.map((m) => ({
           ...m,
           targetDate: Timestamp.fromDate(m.targetDate),
@@ -278,6 +336,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     } catch (error) {
       const e = error as FirestoreError;
       set({ error: { type: "operation", message: e.message } });
+      throw error;
     }
   },
 
@@ -293,6 +352,9 @@ export const useAppStore = create<AppState>((set, get) => ({
         ...goalWithoutId,
         userId: uid,
         endDate: Timestamp.fromDate(goalData.endDate),
+        startDate: goalData.startDate
+          ? Timestamp.fromDate(goalData.startDate)
+          : undefined,
         milestones: goalData.milestones.map((m) => ({
           ...m,
           targetDate: Timestamp.fromDate(m.targetDate),
@@ -304,6 +366,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     } catch (error) {
       const e = error as FirestoreError;
       set({ error: { type: "operation", message: e.message } });
+      throw error;
     }
   },
 
@@ -316,6 +379,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     } catch (error) {
       const e = error as FirestoreError;
       set({ error: { type: "operation", message: e.message } });
+      throw error;
     }
   },
 
@@ -342,6 +406,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             ...m,
             targetDate: Timestamp.fromDate(m.targetDate),
           })),
+          startDate: Timestamp.fromDate(goal.startDate ?? goal.lastUpdated),
           lastUpdated: Timestamp.fromDate(goal.lastUpdated),
         }) as Record<string, unknown>
       );
@@ -517,27 +582,30 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!goal) throw new Error("Goal not found");
 
     const now = new Date();
-    const daysRemaining = Math.ceil(
-      (goal.endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-    );
+    const daysRemaining = calendarDaysRemaining(goal.endDate, now);
     const completedMilestones = goal.milestones.filter(
       (m) => m.completed
     ).length;
     const totalMilestones = goal.milestones.length;
 
-    let lastUpdated: Date;
-    try {
-      lastUpdated =
-        goal.lastUpdated instanceof Date ? goal.lastUpdated : new Date();
-    } catch {
-      lastUpdated = new Date();
+    const start =
+      goal.startDate instanceof Date && !Number.isNaN(goal.startDate.getTime())
+        ? goal.startDate
+        : null;
+    let isOnTrack: boolean;
+    if (!start) {
+      isOnTrack = goal.progress >= 100 || daysRemaining >= 0;
+    } else {
+      const totalTime =
+        startOfLocalDay(goal.endDate).getTime() - startOfLocalDay(start).getTime();
+      const elapsedTime =
+        startOfLocalDay(now).getTime() - startOfLocalDay(start).getTime();
+      const expectedProgress =
+        totalTime <= 0
+          ? 100
+          : Math.min(100, Math.max(0, (elapsedTime / totalTime) * 100));
+      isOnTrack = goal.progress >= expectedProgress;
     }
-
-    const elapsedTime = now.getTime() - lastUpdated.getTime();
-    const totalTime = goal.endDate.getTime() - lastUpdated.getTime();
-    const expectedProgress =
-      totalTime <= 0 ? 100 : (elapsedTime / totalTime) * 100;
-    const isOnTrack = goal.progress >= expectedProgress;
 
     const nextMilestone = goal.milestones
       .filter((m) => !m.completed)
@@ -568,24 +636,31 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       const data = snap.data() as {
         dateKey: string;
-        date: Timestamp;
+        date?: unknown;
         mood?: number;
         energy?: number;
         weightKg?: number;
         notes?: string;
-        createdAt: Timestamp;
-        updatedAt: Timestamp;
+        createdAt?: unknown;
+        updatedAt?: unknown;
       };
+
+      const date = timestampToDate(data.date);
+      const createdAt = timestampToDate(data.createdAt);
+      const updatedAt = timestampToDate(data.updatedAt);
+      if (!date || !createdAt || !updatedAt) {
+        throw new Error("Daily log is missing required dates.");
+      }
 
       const log: DailyLog = {
         dateKey,
-        date: data.date.toDate(),
+        date,
         mood: data.mood,
         energy: data.energy,
         weightKg: data.weightKg,
         notes: data.notes,
-        createdAt: data.createdAt.toDate(),
-        updatedAt: data.updatedAt.toDate(),
+        createdAt,
+        updatedAt,
       };
 
       set((prev) => ({
@@ -603,24 +678,38 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!uid) return;
 
     const date = parseDateKey(dateKey);
+    if (Number.isNaN(date.getTime())) {
+      throw new Error("Invalid date.");
+    }
 
     try {
       const logRef = doc(getClientDb(), "users", uid, "dailyLogs", dateKey);
-      const existing = get().dailyLogsByDateKey[dateKey];
       const now = Timestamp.now();
 
-      const data = omitUndefined({
-        dateKey,
-        date: Timestamp.fromDate(date),
-        ...patch,
-        createdAt:
-          existing && existing !== null
-            ? Timestamp.fromDate(existing.createdAt)
-            : now,
-        updatedAt: now,
-      });
+      await runTransaction(getClientDb(), async (tx) => {
+        const existing = await tx.get(logRef);
+        const data: Record<string, unknown> = {
+          dateKey,
+          date: Timestamp.fromDate(date),
+          updatedAt: now,
+        };
+        if (!existing.exists()) data.createdAt = now;
 
-      await setDoc(logRef, data, { merge: true });
+        const assign = (key: "mood" | "energy" | "weightKg" | "notes") => {
+          const value = patch[key];
+          if (value === undefined || value === "") {
+            if (existing.exists()) data[key] = deleteField();
+            return;
+          }
+          data[key] = value;
+        };
+        assign("mood");
+        assign("energy");
+        assign("weightKg");
+        assign("notes");
+
+        tx.set(logRef, data, { merge: true });
+      });
       await get().loadDailyLog(dateKey);
     } catch (error) {
       const e = error as FirestoreError;
@@ -645,23 +734,27 @@ export const useAppStore = create<AppState>((set, get) => ({
       snap.forEach((docSnap) => {
         const data = docSnap.data() as {
           dateKey: string;
-          date: Timestamp;
+          date?: unknown;
           mood?: number;
           energy?: number;
           weightKg?: number;
           notes?: string;
-          createdAt: Timestamp;
-          updatedAt: Timestamp;
+          createdAt?: unknown;
+          updatedAt?: unknown;
         };
+        const date = timestampToDate(data.date);
+        const createdAt = timestampToDate(data.createdAt);
+        const updatedAt = timestampToDate(data.updatedAt);
+        if (!date || !createdAt || !updatedAt) return;
         logs.push({
           dateKey: data.dateKey,
-          date: data.date.toDate(),
+          date,
           mood: data.mood,
           energy: data.energy,
           weightKg: data.weightKg,
           notes: data.notes,
-          createdAt: data.createdAt.toDate(),
-          updatedAt: data.updatedAt.toDate(),
+          createdAt,
+          updatedAt,
         });
       });
 

@@ -11,7 +11,7 @@ Goal and habit tracking with Firebase auth, daily logs, and optional AI coaching
 - **Tracker** — daily logs (mood, energy, weight, notes)
 - **Dashboard** — progress overview
 - **Profile** — preferences and profile photo URL
-- **Auth** — Firebase email/password (sign-in, sign-up, forgot password) and Google; server session cookies via `/api/auth/session` + `/api/auth/verify`
+- **Auth** — Firebase email/password (sign-in, sign-up, forgot password) and Google. Email/password accounts must verify their email before a server session cookie is issued. Session cookies are created through `/api/auth/session` and checked by `/api/auth/verify`.
 - Public marketing / legal pages: home, about, privacy, terms
 
 ## Tech stack
@@ -42,7 +42,7 @@ src/
   stores/              # auth-store, app-store (Firestore)
   lib/                 # firebase, firebase-admin, session helpers, templates
   types/
-proxy.ts               # Session-cookie route protection
+src/proxy.ts           # Session-cookie route protection (must sit next to src/app)
 firestore.rules  storage.rules
 ```
 
@@ -57,7 +57,7 @@ firestore.rules  storage.rules
 
 ### Install
 
-There is no `.env.example` in the repo; create `.env.local` with the variables below.
+Copy `.env.example` to `.env.local` and fill in the variables below. Never commit real secrets.
 
 ```bash
 git clone https://github.com/brown2020/motivatedotmeai.git
@@ -79,7 +79,7 @@ Open [http://localhost:3000](http://localhost:3000). Deploy `firestore.rules` an
 | `NEXT_PUBLIC_FIREBASE_APP_ID` | App id | Same |
 | `FIREBASE_SERVICE_ACCOUNT_KEY` | Admin service account JSON (string) for session cookies | Firebase Console → Service accounts |
 | `OPENAI_API_KEY` | Enables `/api/ai/goal-insights` (returns 501 if unset) | [platform.openai.com](https://platform.openai.com) |
-| `NEXT_PUBLIC_APP_URL` | Optional public app URL | Your deployment URL |
+| `NEXT_PUBLIC_APP_URL` | Public origin. **Required in production** so session cookie writes accept only this site. Example: `https://motivatedotmeai.vercel.app`. For `next start` locally, set it to `http://localhost:3000`. | Your deployment URL |
 | `ALLOW_DEV_SESSION` | Dev-only session bypass when Admin is unset (`1` to enable). **Never enable in production.** | Local only |
 
 Firebase client init is deferred so CI builds can succeed without secrets.

@@ -1,9 +1,5 @@
-import type {
-  GoalCategory,
-  GoalPriority,
-  GoalStatus,
-  Milestone,
-} from "@/types/goals";
+import type { GoalCategory, GoalPriority, Milestone } from "@/types/goals";
+import { deriveGoalStatus } from "@/lib/goal-status";
 
 export type HabitFrequency = "daily" | "weekly";
 
@@ -176,7 +172,7 @@ function makeId() {
 export function buildQuickstartGoalAndHabits(template: QuickstartTemplate) {
   const now = new Date();
   const endDate = addDays(now, template.durationWeeks * 7);
-  const status: GoalStatus = "not_started";
+  const status = deriveGoalStatus(endDate, 0, now);
 
   const milestones: Milestone[] = template.milestones.map((m) => ({
     id: makeId(),
@@ -196,6 +192,7 @@ export function buildQuickstartGoalAndHabits(template: QuickstartTemplate) {
     priority: template.priority,
     status,
     tags: template.tags,
+    startDate: now,
     lastUpdated: now,
     metrics: undefined,
     reminderFrequency: undefined,

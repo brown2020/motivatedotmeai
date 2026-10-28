@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { formatDisplayDate } from "@/lib/date-utils";
+import { formatDueDate } from "@/lib/date-utils";
 import { useAppStore } from "@/stores/app-store";
 import { LoadingSpinner } from "./LoadingSpinner";
 import { ErrorAlert } from "./ErrorAlert";
@@ -71,7 +71,11 @@ function GoalInsightsBody({
         <div className="bg-gray-50 rounded-lg p-4">
           <div className="text-sm font-medium text-gray-500 mb-1">Time Remaining</div>
           <div className="text-sm font-semibold text-gray-900">
-            {insights.daysRemaining > 0 ? `${insights.daysRemaining} days` : "Overdue"}
+            {insights.daysRemaining > 0
+              ? `${insights.daysRemaining} days`
+              : insights.daysRemaining === 0
+                ? "Due today"
+                : "Overdue"}
           </div>
         </div>
       </div>
@@ -94,7 +98,7 @@ function GoalInsightsBody({
           <div className="bg-gray-50 rounded-lg p-4">
             <div className="text-sm font-medium text-gray-900">{insights.nextMilestone.name}</div>
             <div className="text-sm text-gray-500 mt-1">
-              Due {formatDisplayDate(insights.nextMilestone.targetDate)}
+              Due {formatDueDate(insights.nextMilestone.targetDate)}
             </div>
           </div>
         </div>

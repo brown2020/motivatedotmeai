@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Goal, Milestone } from "@/types/goals";
-import { formatDisplayDate } from "@/lib/date-utils";
+import { formatDueDate, isDateInput, parseDateKey } from "@/lib/date-utils";
 
 type Props = {
   goal: Goal;
@@ -19,10 +19,11 @@ export function MilestonePanel({ goal, onUpdateMilestones }: Props) {
 
   const handleAddMilestone = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isDateInput(newMilestone.targetDate)) return;
     const milestone: Milestone = {
       id: crypto.randomUUID(),
       name: newMilestone.name,
-      targetDate: new Date(newMilestone.targetDate),
+      targetDate: parseDateKey(newMilestone.targetDate),
       completed: false,
       weight: newMilestone.weight || 0,
     };
@@ -154,7 +155,7 @@ export function MilestonePanel({ goal, onUpdateMilestones }: Props) {
                   </span>
                 </div>
                 <span className="text-sm text-gray-500">
-                  {formatDisplayDate(milestone.targetDate)}
+                  {formatDueDate(milestone.targetDate)}
                 </span>
               </div>
             </li>

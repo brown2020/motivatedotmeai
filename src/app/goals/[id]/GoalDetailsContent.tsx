@@ -1,6 +1,7 @@
 "use client";
 
-import { formatDisplayDate } from "@/lib/date-utils";
+import { formatDueDate } from "@/lib/date-utils";
+import { deriveGoalStatus } from "@/lib/goal-status";
 
 import { useAppStore } from "@/stores/app-store";
 import { useParams, useRouter } from "next/navigation";
@@ -8,10 +9,12 @@ import Header from "@/components/Header";
 import { GoalInsights } from "@/components/GoalInsights";
 import { GoalAiCoach } from "@/components/GoalAiCoach";
 import { useState } from "react";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { MilestonePanel } from "./MilestonePanel";
 
 export function GoalDetailsContent() {
   const goals = useAppStore((s) => s.goals);
+  const loadingGoals = useAppStore((s) => s.loading.goals);
   const updateGoal = useAppStore((s) => s.updateGoal);
   const deleteGoal = useAppStore((s) => s.deleteGoal);
   const params = useParams()!;
@@ -20,6 +23,17 @@ export function GoalDetailsContent() {
   const goal = goals.find((g) => g.id === goalId);
 
   const [isDeleting, setIsDeleting] = useState(false);
+
+  if (loadingGoals) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+          <LoadingSpinner />
+        </main>
+      </div>
+    );
+  }
 
   if (!goal) {
     return (
@@ -37,10 +51,14 @@ export function GoalDetailsContent() {
   }
 
   const handleProgressUpdate = (newProgress: number) => {
+    const progress = Math.min(100, Math.max(0, newProgress));
     void updateGoal({
       ...goal,
-      progress: Math.min(100, Math.max(0, newProgress)),
+      progress,
+      status: deriveGoalStatus(goal.endDate, progress),
       lastUpdated: new Date(),
+    }).catch(() => {
+      // Store error is rendered by GoalInsights.
     });
   };
 
@@ -50,6 +68,8 @@ export function GoalDetailsContent() {
     try {
       await deleteGoal(goal.id);
       router.push("/goals");
+    } catch {
+      // Store error is rendered by GoalInsights.
     } finally {
       setIsDeleting(false);
     }
@@ -142,7 +162,7 @@ export function GoalDetailsContent() {
                     Due Date
                   </dt>
                   <dd className="mt-1 text-sm text-gray-900">
-                    {formatDisplayDate(goal.endDate)}
+                    {formatDueDate(goal.endDate)}
                   </dd>
                 </div>
                 <div>
@@ -192,7 +212,10 @@ export function GoalDetailsContent() {
                 void updateGoal({
                   ...goal,
                   milestones,
+                  status: deriveGoalStatus(goal.endDate, goal.progress),
                   lastUpdated: new Date(),
+                }).catch(() => {
+                  // Store error is rendered by GoalInsights.
                 });
               }}
             />

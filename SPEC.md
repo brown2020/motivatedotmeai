@@ -8,7 +8,7 @@ Motivate.me AI is a goal and habit tracking web app. It helps signed-in users cr
 
 - Public pages: home, about, privacy, terms, sign-in, sign-up, and forgot-password.
 - Protected pages: dashboard, goals, goal detail, habits, habit detail, tracker, and profile.
-- Auth flow: email/password (sign-in, create-account, forgot-password with show/hide password) and Google sign-in through Firebase client auth, followed by server session-cookie creation through `/api/auth/session`.
+- Auth flow: email/password (sign-in, create-account, forgot-password with show/hide password) and Google sign-in through Firebase client auth, followed by server session-cookie creation through `/api/auth/session`. Email/password accounts must verify their email before that cookie is issued.
 - Goal workflows: create, update, delete, view progress, complete milestones, apply quickstart templates, and request AI goal insights.
 - Habit workflows: create, delete, toggle today's completion, and view analytics.
 - Tracker workflows: load and save daily logs with mood, energy, weight, and notes.
@@ -18,7 +18,7 @@ Motivate.me AI is a goal and habit tracking web app. It helps signed-in users cr
 
 - `src/app/layout.tsx` wraps the app with client providers and shared layout.
 - `src/app/providers.tsx` initializes auth, initializes the Firestore app store for the current UID, applies the dark-mode class, and redirects unauthenticated client navigation away from protected pages.
-- Root `proxy.ts` verifies signed-in state for protected routes by checking session cookies and calling `/api/auth/verify`.
+- `src/proxy.ts` verifies signed-in state for protected routes by checking session cookies and calling `/api/auth/verify`. It has to live next to `src/app` or Next.js will not register it.
 - `src/lib/require-session.ts` protects server API routes by validating Firebase Admin session cookies or the explicit development bypass.
 - `src/stores/auth-store.ts` manages Firebase auth state and server session-cookie creation/deletion.
 - `src/stores/app-store.ts` manages Firestore subscriptions and writes for goals, habits, user documents, and daily logs.
@@ -28,6 +28,7 @@ Motivate.me AI is a goal and habit tracking web app. It helps signed-in users cr
 
 - Firebase client environment variables are required for auth and Firestore client operations.
 - `FIREBASE_SERVICE_ACCOUNT_KEY` is required in production for session-cookie creation and verification.
+- `NEXT_PUBLIC_APP_URL` is required in production. Session cookie create/delete requests are rejected unless their origin matches it.
 - `ALLOW_DEV_SESSION=1` enables a development-only session bypass when Firebase Admin is not configured.
 - `OPENAI_API_KEY` enables `/api/ai/goal-insights`; without it, that route returns a 501 response.
 - Firestore collections documented in code are `goals`, `habits`, `users`, and `users/{uid}/dailyLogs`.

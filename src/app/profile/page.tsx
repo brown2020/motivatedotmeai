@@ -21,6 +21,14 @@ export default function ProfilePage() {
 
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const allowedPhotoTypes = new Set([
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+  ]);
 
   const preferences = user?.preferences;
 
@@ -47,8 +55,8 @@ export default function ProfilePage() {
 
   const handleProfilePhoto = async (file: File) => {
     if (!authUser?.uid) return;
-    if (!file.type.startsWith("image/")) {
-      throw new Error("Please choose an image file.");
+    if (!allowedPhotoTypes.has(file.type)) {
+      throw new Error("Choose a JPEG, PNG, WebP, or GIF.");
     }
     if (file.size > 5 * 1024 * 1024) {
       throw new Error("Image must be under 5MB.");
@@ -112,15 +120,20 @@ export default function ProfilePage() {
                     <span className="text-sm text-gray-700">Profile photo</span>
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
                       disabled={isUploading}
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
+                        setUploadError(null);
                         try {
                           await handleProfilePhoto(file);
-                        } catch {
-                          // Error is handled by the store's error state
+                        } catch (err) {
+                          const message =
+                            err instanceof Error
+                              ? err.message
+                              : "Could not upload that photo.";
+                          setUploadError(message);
                         } finally {
                           // reset so selecting same file again triggers change
                           e.target.value = "";
@@ -131,6 +144,11 @@ export default function ProfilePage() {
                   </label>
                   {isUploading && (
                     <div className="text-sm text-gray-500">Uploading…</div>
+                  )}
+                  {uploadError && (
+                    <p className="text-sm text-red-600" role="alert">
+                      {uploadError}
+                    </p>
                   )}
                 </div>
               </div>

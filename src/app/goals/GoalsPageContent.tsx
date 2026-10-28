@@ -1,8 +1,10 @@
 "use client";
 
-import { formatDisplayDate } from "@/lib/date-utils";
+import { formatDueDate, isDateInput, parseDateKey } from "@/lib/date-utils";
+import { deriveGoalStatus } from "@/lib/goal-status";
 
 import Header from "@/components/Header";
+import { ErrorAlert } from "@/components/ErrorAlert";
 import { useAppStore } from "@/stores/app-store";
 import { QuickstartTemplatePicker } from "@/components/QuickstartTemplatePicker";
 import { useState } from "react";
@@ -13,6 +15,8 @@ import { AddGoalModal } from "./AddGoalModal";
 
 export function GoalsPageContent() {
   const goals = useAppStore((s) => s.goals);
+  const error = useAppStore((s) => s.error);
+  const clearError = useAppStore((s) => s.clearError);
   const addGoal = useAppStore((s) => s.addGoal);
   const deleteGoal = useAppStore((s) => s.deleteGoal);
   const applyQuickstartTemplate = useAppStore((s) => s.applyQuickstartTemplate);
@@ -29,36 +33,41 @@ export function GoalsPageContent() {
   });
   const [tagInput, setTagInput] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isDateInput(newGoal.endDate)) return;
     const now = new Date();
-    const endDate = new Date(newGoal.endDate);
-    const status = endDate < now ? "overdue" : "not_started";
+    const endDate = parseDateKey(newGoal.endDate);
 
-    void addGoal({
-      name: newGoal.name,
-      reason: newGoal.reason,
-      endDate: endDate,
-      progress: 0,
-      milestones: [],
-      category: newGoal.category,
-      priority: newGoal.priority,
-      status: status,
-      tags: newGoal.tags || [],
-      lastUpdated: now,
-      metrics: undefined,
-      reminderFrequency: undefined,
-      nextReminder: undefined,
-    });
-    setIsAddingGoal(false);
-    setNewGoal({
-      name: "",
-      reason: "",
-      endDate: "",
-      category: "personal",
-      priority: "medium",
-      tags: [],
-    });
+    try {
+      await addGoal({
+        name: newGoal.name,
+        reason: newGoal.reason,
+        endDate,
+        progress: 0,
+        milestones: [],
+        category: newGoal.category,
+        priority: newGoal.priority,
+        status: deriveGoalStatus(endDate, 0, now),
+        tags: newGoal.tags || [],
+        startDate: now,
+        lastUpdated: now,
+        metrics: undefined,
+        reminderFrequency: undefined,
+        nextReminder: undefined,
+      });
+      setIsAddingGoal(false);
+      setNewGoal({
+        name: "",
+        reason: "",
+        endDate: "",
+        category: "personal",
+        priority: "medium",
+        tags: [],
+      });
+    } catch {
+      // Store error is rendered below. Keep the form open.
+    }
   };
 
   const handleAddTag = (e: React.KeyboardEvent) => {
@@ -133,6 +142,12 @@ export function GoalsPageContent() {
           onRemoveTag={removeTag}
         />
 
+        {error && (
+          <div className="mt-6 px-4 sm:px-0">
+            <ErrorAlert message={error.message} onClose={clearError} />
+          </div>
+        )}
+
         <div className="mt-6">
           {goals.length === 0 ? (
             <div className="text-center py-12">
@@ -199,7 +214,11 @@ export function GoalsPageContent() {
                                 `Delete goal \"${goal.name}\"?`
                               );
                               if (!ok) return;
-                              await deleteGoal(goal.id);
+                              try {
+                                await deleteGoal(goal.id);
+                              } catch {
+                                // Store error is rendered below.
+                              }
                             }}
                             className="rounded-md bg-white px-3 py-1.5 text-sm font-medium text-red-700 shadow-xs ring-1 ring-red-200 hover:bg-red-50"
                           >
@@ -218,7 +237,7 @@ export function GoalsPageContent() {
                             {goal.progress}% complete
                           </span>
                           <span className="text-sm text-gray-500">
-                            Due {formatDisplayDate(goal.endDate)}
+                            Due {formatDueDate(goal.endDate)}
                           </span>
                         </div>
                       </div>

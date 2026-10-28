@@ -1,6 +1,7 @@
 "use client";
 
 import { formatDisplayDate } from "@/lib/date-utils";
+import { currentCompletionStreak } from "@/lib/habit-stats";
 
 import Header from "@/components/Header";
 import { useAppStore } from "@/stores/app-store";
@@ -20,24 +21,7 @@ export default function DashboardPage() {
 
   const currentStreakDays = useMemo(() => {
     const all = habits.flatMap((h) => h.completions.map((d) => new Date(d)));
-    if (all.length === 0) return 0;
-
-    const byDay = new Set(
-      all.map((d) =>
-        new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
-      )
-    );
-
-    let streak = 0;
-    const cursor = new Date();
-    cursor.setHours(0, 0, 0, 0);
-
-    while (byDay.has(cursor.getTime())) {
-      streak += 1;
-      cursor.setDate(cursor.getDate() - 1);
-    }
-
-    return streak;
+    return currentCompletionStreak(all);
   }, [habits]);
 
   const recentActivity = useMemo(() => {

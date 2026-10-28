@@ -2,49 +2,49 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    
-    // Helper function to check if user is authenticated
     function isAuthenticated() {
       return request.auth != null;
     }
-    
-    // Helper function to check if user owns the file
+
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
-    
-    // Helper function to validate file size (max 5MB)
-    function isValidSize() {
-      return request.resource.size < 5 * 1024 * 1024;
+
+    function isUnderSizeLimit() {
+      return request.resource != null
+        && request.resource.size < 5 * 1024 * 1024;
     }
-    
-    // Helper function to validate image file type
-    function isValidImageType() {
-      return request.resource.contentType.matches('image/.*');
+
+    // Raster images only. SVG is excluded because it can carry script.
+    function isRasterImage() {
+      return request.resource != null
+        && request.resource.contentType.matches('^image/(jpeg|png|webp|gif)$');
     }
-    
-    // User profile images - only the owner can upload/read/delete
+
+    function canWriteImage(userId) {
+      return isOwner(userId) && isUnderSizeLimit() && isRasterImage();
+    }
+
     match /users/{userId}/profile/{fileName} {
       allow read: if isOwner(userId);
-      allow write: if isOwner(userId) && isValidSize() && isValidImageType();
+      allow create, update: if canWriteImage(userId);
+      allow delete: if isOwner(userId);
     }
-    
-    // Goal-related files - only the owner can upload/read/delete
+
     match /users/{userId}/goals/{goalId}/{fileName} {
       allow read: if isOwner(userId);
-      allow write: if isOwner(userId) && isValidSize();
+      allow create, update: if canWriteImage(userId);
+      allow delete: if isOwner(userId);
     }
-    
-    // Habit-related files - only the owner can upload/read/delete
+
     match /users/{userId}/habits/{habitId}/{fileName} {
       allow read: if isOwner(userId);
-      allow write: if isOwner(userId) && isValidSize();
+      allow create, update: if canWriteImage(userId);
+      allow delete: if isOwner(userId);
     }
-    
-    // Deny all other access by default
+
     match /{allPaths=**} {
       allow read, write: if false;
     }
   }
 }
-

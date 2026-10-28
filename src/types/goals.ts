@@ -40,6 +40,8 @@ export interface Goal {
   status: GoalStatus;
   tags: string[];
   metrics?: GoalMetrics;
+  /** When the goal was started. Schedule math uses this, not lastUpdated. */
+  startDate?: Date;
   lastUpdated: Date;
   reminderFrequency?: ReminderFrequency;
   nextReminder?: Date;

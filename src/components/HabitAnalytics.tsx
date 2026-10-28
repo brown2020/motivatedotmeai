@@ -4,6 +4,12 @@ import React, { useMemo } from "react";
 import { useAppStore } from "@/stores/app-store";
 import { LoadingSpinner } from "./LoadingSpinner";
 import { ErrorAlert } from "./ErrorAlert";
+import {
+  bestCompletionWeekday,
+  countCompletionDaysSince,
+  currentCompletionStreak,
+  longestCompletionStreak,
+} from "@/lib/habit-stats";
 
 interface HabitAnalyticsProps {
   habitId: string;
@@ -14,19 +20,9 @@ interface HabitStats {
   longestStreak: number;
   completionRate: number;
   totalCompletions: number;
-  bestDayOfWeek: string;
+  bestDayOfWeek: string | null;
   lastWeekCompletions: number;
 }
-
-const DAYS_OF_WEEK = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-];
 
 export const HabitAnalytics: React.FC<HabitAnalyticsProps> = ({ habitId }) => {
   const habits = useAppStore((s) => s.habits);
@@ -39,73 +35,29 @@ export const HabitAnalytics: React.FC<HabitAnalyticsProps> = ({ habitId }) => {
     if (!habit) return null;
 
     const now = new Date();
-    const completions = habit.completions.sort(
-      (a, b) => b.getTime() - a.getTime()
+    const completions = habit.completions.map((date) => new Date(date));
+    const thirtyDaysAgo = new Date(now);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
+    const weekAgo = new Date(now);
+    weekAgo.setDate(weekAgo.getDate() - 6);
+    const last30DaysCompletions = countCompletionDaysSince(
+      completions,
+      thirtyDaysAgo
     );
-
-    // Calculate current streak
-    let currentStreak = 0;
-    let lastDate = now;
-    for (const date of completions) {
-      const dayDiff = Math.floor(
-        (lastDate.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
-      );
-      if (dayDiff <= 1) {
-        currentStreak++;
-        lastDate = date;
-      } else {
-        break;
-      }
-    }
-
-    // Calculate longest streak
-    let longestStreak = 0;
-    let currentCount = 1;
-    for (let i = 1; i < completions.length; i++) {
-      const dayDiff = Math.floor(
-        (completions[i - 1].getTime() - completions[i].getTime()) /
-          (1000 * 60 * 60 * 24)
-      );
-      if (dayDiff <= 1) {
-        currentCount++;
-      } else {
-        longestStreak = Math.max(longestStreak, currentCount);
-        currentCount = 1;
-      }
-    }
-    longestStreak = Math.max(
-      longestStreak,
-      completions.length > 0 ? currentCount : 0
-    );
-
-    // Calculate completion rate (last 30 days)
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const last30DaysCompletions = completions.filter(
-      (date) => date >= thirtyDaysAgo
-    ).length;
-    const completionRate = Math.min(100, (last30DaysCompletions / 30) * 100);
-
-    // Calculate best day of week
-    const dayCount = new Array(7).fill(0);
-    completions.forEach((date) => {
-      dayCount[date.getDay()]++;
-    });
-    const bestDayIndex = dayCount.indexOf(Math.max(...dayCount));
-
-    // Calculate last week completions
-    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const lastWeekCompletions = completions.filter(
-      (date) => date >= weekAgo
-    ).length;
 
     return {
-      currentStreak,
-      longestStreak,
-      completionRate,
-      totalCompletions: completions.length,
-      bestDayOfWeek: DAYS_OF_WEEK[bestDayIndex],
-      lastWeekCompletions,
-    } as HabitStats;
+      currentStreak: currentCompletionStreak(completions, now),
+      longestStreak: longestCompletionStreak(completions),
+      completionRate: Math.min(100, (last30DaysCompletions / 30) * 100),
+      totalCompletions: new Set(
+        completions.map(
+          (date) =>
+            new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
+        )
+      ).size,
+      bestDayOfWeek: bestCompletionWeekday(completions),
+      lastWeekCompletions: countCompletionDaysSince(completions, weekAgo),
+    } satisfies HabitStats;
   }, [habit]);
 
   if (loading.habits) {
@@ -195,8 +147,14 @@ export const HabitAnalytics: React.FC<HabitAnalyticsProps> = ({ habitId }) => {
         </div>
         <div className="bg-gray-50 rounded-lg p-4">
           <div className="text-sm text-gray-700">
-            You&apos;re most consistent on{" "}
-            <span className="font-semibold">{stats.bestDayOfWeek}s</span>
+            {stats.bestDayOfWeek ? (
+              <>
+                You&apos;re most consistent on{" "}
+                <span className="font-semibold">{stats.bestDayOfWeek}s</span>
+              </>
+            ) : (
+              "Complete this habit to see which day you stick with it."
+            )}
           </div>
         </div>
       </div>
