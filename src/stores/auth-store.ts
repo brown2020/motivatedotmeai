@@ -13,6 +13,24 @@ import {
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { getAuthorizedOrigin, mapAuthError } from "@/lib/auth-errors";
+import { sendWithContinueUrlFallback } from "@/lib/verification-email";
+
+function emailActionContinueUrl(): string | undefined {
+  const origin = getAuthorizedOrigin();
+  return origin ? `${origin}/signin` : undefined;
+}
+
+async function sendCurrentUserVerificationEmail(): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) {
+    throw Object.assign(new Error("No signed-in user to verify"), {
+      code: "auth/null-user",
+    });
+  }
+  await sendWithContinueUrlFallback(emailActionContinueUrl(), (settings) =>
+    sendEmailVerification(user, settings)
+  );
+}
 
 async function clearServerSessionCookie() {
   await fetch("/api/auth/session", {
@@ -101,6 +119,7 @@ interface AuthState {
     displayName?: string
   ) => Promise<boolean>;
   sendPasswordReset: (email: string) => Promise<boolean>;
+  resendVerificationEmail: (email: string, password: string) => Promise<boolean>;
   signOut: () => Promise<void>;
 }
 
@@ -169,18 +188,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await signInWithEmailAndPassword(auth, email.trim(), password);
       if (auth.currentUser && !auth.currentUser.emailVerified) {
         try {
-          const origin = getAuthorizedOrigin();
-          await sendEmailVerification(
-            auth.currentUser,
-            origin ? { url: `${origin}/signin` } : undefined
-          );
-        } catch {
-          console.warn("[auth] could not resend verification email");
+          await sendCurrentUserVerificationEmail();
+        } catch (error) {
+          await resetFailedSignIn();
+          set({ error: mapAuthError(error, "verify") });
+          return false;
         }
         await resetFailedSignIn();
         set({
           error:
-            "Verify your email before signing in. A verification link is on its way.",
+            "Verify your email before signing in. A verification link is on its way. If it does not arrive, use Resend verification email.",
         });
         return false;
       }
@@ -221,17 +238,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
       }
       try {
-        const origin = getAuthorizedOrigin();
-        await sendEmailVerification(
-          credential.user,
-          origin ? { url: `${origin}/signin` } : undefined
-        );
-      } catch {
-        console.warn("[auth] signup: could not send verification email");
+        await sendCurrentUserVerificationEmail();
+      } catch (error) {
+        await resetFailedSignIn();
+        set({
+          error: `Your account was created, but the verification email was not sent. ${mapAuthError(error, "verify")} Use Resend verification email below.`,
+          info: null,
+        });
+        return false;
       }
       await resetFailedSignIn();
       set({
-        info: "Account created. Check your email to verify it, then sign in.",
+        info: "Account created. Check your email to verify it, then sign in. You can resend the link below if it does not arrive.",
         error: null,
       });
       return false;
@@ -251,11 +269,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isSigningIn: true, error: null, info: null });
 
     try {
-      const origin = getAuthorizedOrigin();
-      await sendPasswordResetEmail(
-        auth,
-        email.trim(),
-        origin ? { url: `${origin}/signin` } : undefined
+      await sendWithContinueUrlFallback(emailActionContinueUrl(), (settings) =>
+        sendPasswordResetEmail(auth, email.trim(), settings)
       );
       // Always show the same confirmation (no email enumeration).
       set({
@@ -284,6 +299,62 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return true;
       }
       set({ error: mapAuthError(error, "reset") });
+      return false;
+    } finally {
+      set({ isSigningIn: false });
+    }
+  },
+
+  resendVerificationEmail: async (email, password) => {
+    if (get().isSigningIn) return false;
+    const trimmed = email.trim();
+    if (!trimmed || !password) {
+      set({
+        error: "Enter your email and password to resend the verification link.",
+        info: null,
+      });
+      return false;
+    }
+
+    set({ isSigningIn: true, error: null, info: null });
+
+    try {
+      const sameUser =
+        auth.currentUser?.email?.toLowerCase() === trimmed.toLowerCase();
+      if (!sameUser) {
+        await signInWithEmailAndPassword(auth, trimmed, password);
+      }
+      const user = auth.currentUser;
+      if (!user) {
+        set({
+          error: "Sign-in finished, but Firebase did not return a user.",
+        });
+        return false;
+      }
+
+      await user.reload();
+      if (user.emailVerified) {
+        const session = await createServerSession();
+        if (!session.ok) {
+          set({ error: session.message });
+          return false;
+        }
+        set({ error: null, info: null });
+        return true;
+      }
+
+      await sendCurrentUserVerificationEmail();
+      await resetFailedSignIn();
+      set({
+        info: "Verification email sent. Check your inbox and spam folder, then sign in.",
+        error: null,
+      });
+      return false;
+    } catch (error) {
+      if (auth.currentUser) {
+        await resetFailedSignIn();
+      }
+      set({ error: mapAuthError(error, "verify") });
       return false;
     } finally {
       set({ isSigningIn: false });

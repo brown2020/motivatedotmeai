@@ -11,7 +11,7 @@ Goal and habit tracking with Firebase auth, daily logs, and optional AI coaching
 - **Tracker** — daily logs (mood, energy, weight, notes)
 - **Dashboard** — progress overview
 - **Profile** — preferences and profile photo URL
-- **Auth** — Firebase email/password (sign-in, sign-up, forgot password) and Google. Email/password accounts must verify their email before a server session cookie is issued. Session cookies are created through `/api/auth/session` and checked by `/api/auth/verify`.
+- **Auth** — Firebase email/password (sign-in, sign-up, forgot password) and Google. Email/password accounts must verify their email before a server session cookie is issued. If Firebase rejects the preview host as a continue URL (`auth/unauthorized-continue-uri`), the app resends the verification or reset email without that URL. Sign-in and sign-up include Resend verification email. Session cookies are created through `/api/auth/session` and checked by `/api/auth/verify`.
 - Public marketing / legal pages: home, about, privacy, terms
 
 ## Tech stack

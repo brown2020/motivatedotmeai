@@ -13,6 +13,7 @@ export default function SignUpPage() {
   const clearAuthError = useAuthStore((s) => s.clearError);
   const clearInfo = useAuthStore((s) => s.clearInfo);
   const signUpWithEmail = useAuthStore((s) => s.signUpWithEmail);
+  const resendVerificationEmail = useAuthStore((s) => s.resendVerificationEmail);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -21,6 +22,11 @@ export default function SignUpPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const ok = await signUpWithEmail(email, password, name);
+    if (ok) window.location.assign("/dashboard");
+  };
+
+  const handleResendVerification = async () => {
+    const ok = await resendVerificationEmail(email, password);
     if (ok) window.location.assign("/dashboard");
   };
 
@@ -81,6 +87,17 @@ export default function SignUpPage() {
           >
             {isSigningIn ? "Creating account…" : "Create account"}
           </button>
+          <button
+            type="button"
+            onClick={handleResendVerification}
+            disabled={isSigningIn || email.trim() === "" || password === ""}
+            className="flex w-full items-center justify-center rounded-md bg-white px-4 py-3 text-sm font-semibold text-indigo-700 shadow-xs ring-1 ring-indigo-200 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:text-slate-400 disabled:ring-slate-200"
+          >
+            Resend verification email
+          </button>
+          <p className="text-center text-xs text-slate-500">
+            Resend uses the email and password above.
+          </p>
         </form>
 
         {info && (

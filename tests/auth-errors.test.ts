@@ -17,6 +17,17 @@ describe("mapAuthError", () => {
     );
   });
 
+  it("maps verification send failures without claiming the email was sent", () => {
+    assert.equal(
+      mapAuthError({ code: "auth/too-many-requests" }, "verify"),
+      "Too many attempts. Please wait a bit and try again."
+    );
+    assert.equal(
+      mapAuthError({ code: "auth/internal-error", message: "SECRET" }, "verify"),
+      "We couldn't send the verification email. Please try again."
+    );
+  });
+
   it("does not leak raw Firebase messages", () => {
     const msg = mapAuthError({ code: "auth/internal-error", message: "SECRET" }, "signin");
     assert.equal(msg.includes("SECRET"), false);

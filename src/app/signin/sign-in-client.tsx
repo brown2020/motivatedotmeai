@@ -34,9 +34,12 @@ export default function SignInClient({ nextPath }: { nextPath?: string }) {
   const isLoading = useAuthStore((s) => s.isLoading);
   const isSigningIn = useAuthStore((s) => s.isSigningIn);
   const authError = useAuthStore((s) => s.error);
+  const info = useAuthStore((s) => s.info);
   const clearAuthError = useAuthStore((s) => s.clearError);
+  const clearInfo = useAuthStore((s) => s.clearInfo);
   const signInWithGoogle = useAuthStore((s) => s.signInWithGoogle);
   const signInWithEmail = useAuthStore((s) => s.signInWithEmail);
+  const resendVerificationEmail = useAuthStore((s) => s.resendVerificationEmail);
   const signOut = useAuthStore((s) => s.signOut);
 
   const [email, setEmail] = useState("");
@@ -57,6 +60,11 @@ export default function SignInClient({ nextPath }: { nextPath?: string }) {
   const handleEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     const ok = await signInWithEmail(email, password);
+    if (ok) navigateAfterAuth();
+  };
+
+  const handleResendVerification = async () => {
+    const ok = await resendVerificationEmail(email, password);
     if (ok) navigateAfterAuth();
   };
 
@@ -179,6 +187,17 @@ export default function SignInClient({ nextPath }: { nextPath?: string }) {
                       >
                         {isSigningIn ? "Signing in…" : "Sign in with email"}
                       </button>
+                      <button
+                        type="button"
+                        onClick={handleResendVerification}
+                        disabled={isSigningIn || email.trim() === "" || password === ""}
+                        className="flex w-full items-center justify-center rounded-md bg-white px-4 py-3 text-sm font-semibold text-indigo-700 shadow-xs ring-1 ring-indigo-200 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:text-slate-400 disabled:ring-slate-200"
+                      >
+                        Resend verification email
+                      </button>
+                      <p className="text-center text-xs text-slate-500">
+                        Resend uses the email and password above.
+                      </p>
                     </form>
 
                     <div className="relative py-1">
@@ -212,6 +231,19 @@ export default function SignInClient({ nextPath }: { nextPath?: string }) {
                   </>
                 )}
               </div>
+
+              {info && (
+                <p
+                  className="mt-5 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
+                  role="status"
+                  aria-live="polite"
+                >
+                  {info}{" "}
+                  <button type="button" onClick={clearInfo} className="underline">
+                    Dismiss
+                  </button>
+                </p>
+              )}
 
               {authError && (
                 <div className="mt-5" aria-live="polite">

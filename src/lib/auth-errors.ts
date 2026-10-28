@@ -1,4 +1,4 @@
-export type AuthErrorContext = "signin" | "signup" | "reset" | "google";
+export type AuthErrorContext = "signin" | "signup" | "reset" | "google" | "verify";
 
 export function mapAuthError(error: unknown, context: AuthErrorContext): string {
   const code =
@@ -23,7 +23,7 @@ export function mapAuthError(error: unknown, context: AuthErrorContext): string 
     case "auth/wrong-password":
     case "auth/invalid-credential":
     case "auth/invalid-login-credentials":
-      return context === "signin"
+      return context === "signin" || context === "verify"
         ? "Invalid email or password."
         : "We couldn't complete that request. Check your details and try again.";
     case "auth/email-already-in-use":
@@ -43,6 +43,9 @@ export function mapAuthError(error: unknown, context: AuthErrorContext): string 
       return "An account already exists for this email with a different sign-in method.";
     case "auth/missing-email":
       return "Enter your email address.";
+    case "auth/unauthorized-continue-uri":
+    case "auth/invalid-continue-uri":
+      return "We couldn't send the email from this site address. Please try again.";
     default:
       if (context === "reset") {
         return "If an account uses that email, a password reset link will arrive shortly.";
@@ -52,6 +55,9 @@ export function mapAuthError(error: unknown, context: AuthErrorContext): string 
       }
       if (context === "signup") {
         return "We couldn't create your account. Please try again.";
+      }
+      if (context === "verify") {
+        return "We couldn't send the verification email. Please try again.";
       }
       return "We couldn't sign you in. Please try again.";
   }
