@@ -12,29 +12,29 @@
     "doctor": "npx -y react-doctor@0.9.14 . --verbose --yes"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^3.0.53",
-    "ai": "^6.0.168",
-    "firebase": "^12.12.1",
-    "firebase-admin": "^13.8.0",
-    "next": "^16.2.4",
-    "react": "^19.2.5",
-    "react-dom": "^19.2.5",
-    "zod": "^4.3.6",
-    "zustand": "^5.0.12"
+    "@ai-sdk/openai": "^4.0.104",
+    "ai": "^7.0.155",
+    "firebase": "^12.19.0",
+    "firebase-admin": "^13.10.0",
+    "next": "^16.4.3",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "zod": "^4.6.7",
+    "zustand": "^5.0.16"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.2.4",
-    "@types/node": "^25.6.0",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.6.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^10.2.1",
+    "eslint": "^10.13.0",
     "postcss": "^8",
-    "tailwindcss": "^4.2.4",
-    "typescript": "^6",
-    "@next/eslint-plugin-next": "^16.2.4",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3",
+    "@next/eslint-plugin-next": "^16.4.3",
     "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "typescript-eslint": "^8.32.0"
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "typescript-eslint": "^8.72.1"
   },
   "overrides": {
     "uuid": ">=14.0.0",
