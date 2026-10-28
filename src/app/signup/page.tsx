@@ -9,7 +9,9 @@ import { useAuthStore } from "@/stores/auth-store";
 export default function SignUpPage() {
   const isSigningIn = useAuthStore((s) => s.isSigningIn);
   const authError = useAuthStore((s) => s.error);
+  const info = useAuthStore((s) => s.info);
   const clearAuthError = useAuthStore((s) => s.clearError);
+  const clearInfo = useAuthStore((s) => s.clearInfo);
   const signUpWithEmail = useAuthStore((s) => s.signUpWithEmail);
 
   const [name, setName] = useState("");
@@ -80,6 +82,15 @@ export default function SignUpPage() {
             {isSigningIn ? "Creating account…" : "Create account"}
           </button>
         </form>
+
+        {info && (
+          <p className="mt-5 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800" role="status" aria-live="polite">
+            {info}{" "}
+            <button type="button" onClick={clearInfo} className="underline">
+              Dismiss
+            </button>
+          </p>
+        )}
 
         {authError && (
           <div className="mt-5" aria-live="polite">

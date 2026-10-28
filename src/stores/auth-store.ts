@@ -4,6 +4,7 @@ import {
   User,
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
@@ -28,6 +29,9 @@ async function getSessionErrorMessage(res: Response): Promise<string> {
     }
     if (data.code === "DEV_SESSION_DISABLED") {
       return "Local session creation is disabled. Add the Firebase Admin key, or enable the local dev session bypass.";
+    }
+    if (data.code === "EMAIL_NOT_VERIFIED") {
+      return "Verify your email before signing in. Check your inbox for the verification link.";
     }
     if (typeof data.error === "string") return data.error;
   } catch {
@@ -163,6 +167,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     try {
       await signInWithEmailAndPassword(auth, email.trim(), password);
+      if (auth.currentUser && !auth.currentUser.emailVerified) {
+        try {
+          const origin = getAuthorizedOrigin();
+          await sendEmailVerification(
+            auth.currentUser,
+            origin ? { url: `${origin}/signin` } : undefined
+          );
+        } catch {
+          console.warn("[auth] could not resend verification email");
+        }
+        await resetFailedSignIn();
+        set({
+          error:
+            "Verify your email before signing in. A verification link is on its way.",
+        });
+        return false;
+      }
       const session = await createServerSession();
       if (!session.ok) {
         set({ error: session.message });
@@ -199,13 +220,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           console.warn("[auth] signup: could not set display name");
         }
       }
-      const session = await createServerSession();
-      if (!session.ok) {
-        set({ error: session.message });
-        return false;
+      try {
+        const origin = getAuthorizedOrigin();
+        await sendEmailVerification(
+          credential.user,
+          origin ? { url: `${origin}/signin` } : undefined
+        );
+      } catch {
+        console.warn("[auth] signup: could not send verification email");
       }
-      set({ error: null });
-      return true;
+      await resetFailedSignIn();
+      set({
+        info: "Account created. Check your email to verify it, then sign in.",
+        error: null,
+      });
+      return false;
     } catch (error) {
       if (auth.currentUser) {
         await resetFailedSignIn();

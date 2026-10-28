@@ -7,66 +7,27 @@ import {
   SESSION_EXPIRES_IN_MS,
   isDevSessionBypassEnabled,
 } from "@/lib/dev-session";
+import { isAllowedSessionOrigin } from "@/lib/session-origin";
+import { hasVerifiedEmail } from "@/lib/verified-email";
 
-const LOCAL_DEV_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
-
-function getOrigin(value: string): string | null {
-  try {
-    return new URL(value).origin;
-  } catch {
-    return null;
-  }
+function isRequestOriginAllowed(origin: string | null, referer: string | null): boolean {
+  return isAllowedSessionOrigin(origin, referer, {
+    nodeEnv: process.env.NODE_ENV,
+    appUrl: process.env.NEXT_PUBLIC_APP_URL,
+  });
 }
 
-function isLocalDevOrigin(origin: string): boolean {
-  try {
-    const url = new URL(origin);
-    return (
-      (url.protocol === "http:" || url.protocol === "https:") &&
-      LOCAL_DEV_HOSTS.has(url.hostname)
-    );
-  } catch {
-    return false;
-  }
-}
-
-function isValidOrigin(origin: string | null): boolean {
-  if (!origin) return false;
-
-  // Always allow local loopback (Playwright / local `next start` eval).
-  if (isLocalDevOrigin(origin)) return true;
-
-  if (process.env.NODE_ENV === "production") {
-    const prodOrigin = process.env.NEXT_PUBLIC_APP_URL
-      ? getOrigin(process.env.NEXT_PUBLIC_APP_URL)
-      : null;
-    if (prodOrigin && origin === prodOrigin) return true;
-    return false;
-  }
-
-  return false;
-}
-
-function isValidReferer(referer: string | null): boolean {
-  if (!referer) return false;
-  const refererOrigin = getOrigin(referer);
-  return isValidOrigin(refererOrigin);
+function originDenied() {
+  return NextResponse.json({ error: "Invalid request origin" }, { status: 403 });
 }
 
 export async function POST(req: Request) {
-  // CSRF protection: verify origin header
   const headersList = await headers();
   const origin = headersList.get("origin");
   const referer = headersList.get("referer");
 
-  if (
-    (origin && !isValidOrigin(origin)) ||
-    (!origin && referer && !isValidReferer(referer))
-  ) {
-    return NextResponse.json(
-      { error: "Invalid request origin" },
-      { status: 403 }
-    );
+  if (!isRequestOriginAllowed(origin, referer)) {
+    return originDenied();
   }
 
   const isAdminConfigured = Boolean(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
@@ -121,6 +82,17 @@ export async function POST(req: Request) {
 
   try {
     const adminAuth = getAdminAuth();
+    const decoded = await adminAuth.verifyIdToken(idToken);
+    if (!hasVerifiedEmail(decoded)) {
+      return NextResponse.json(
+        {
+          error: "Verify your email before signing in.",
+          code: "EMAIL_NOT_VERIFIED",
+        },
+        { status: 403 }
+      );
+    }
+
     const sessionCookie = await adminAuth.createSessionCookie(idToken, {
       expiresIn: SESSION_EXPIRES_IN_MS,
     });
@@ -129,7 +101,7 @@ export async function POST(req: Request) {
     jar.set(SESSION_COOKIE_NAME, sessionCookie, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict", // Changed from "lax" for better CSRF protection
+      sameSite: "strict",
       path: "/",
       maxAge: Math.floor(SESSION_EXPIRES_IN_MS / 1000),
     });
@@ -145,6 +117,16 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE() {
+  const headersList = await headers();
+  if (
+    !isRequestOriginAllowed(
+      headersList.get("origin"),
+      headersList.get("referer")
+    )
+  ) {
+    return originDenied();
+  }
+
   const jar = await cookies();
   jar.set(SESSION_COOKIE_NAME, "", {
     httpOnly: true,
