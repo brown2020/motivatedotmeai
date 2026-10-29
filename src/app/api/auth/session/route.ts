@@ -10,10 +10,17 @@ import {
 import { isAllowedSessionOrigin } from "@/lib/session-origin";
 import { hasVerifiedEmail } from "@/lib/verified-email";
 
-function isRequestOriginAllowed(origin: string | null, referer: string | null): boolean {
+function isRequestOriginAllowed(
+  origin: string | null,
+  referer: string | null,
+  host: string | null,
+  forwardedHost: string | null
+): boolean {
   return isAllowedSessionOrigin(origin, referer, {
     nodeEnv: process.env.NODE_ENV,
     appUrl: process.env.NEXT_PUBLIC_APP_URL,
+    host,
+    forwardedHost,
   });
 }
 
@@ -26,7 +33,14 @@ export async function POST(req: Request) {
   const origin = headersList.get("origin");
   const referer = headersList.get("referer");
 
-  if (!isRequestOriginAllowed(origin, referer)) {
+  if (
+    !isRequestOriginAllowed(
+      origin,
+      referer,
+      headersList.get("host"),
+      headersList.get("x-forwarded-host")
+    )
+  ) {
     return originDenied();
   }
 
@@ -121,7 +135,9 @@ export async function DELETE() {
   if (
     !isRequestOriginAllowed(
       headersList.get("origin"),
-      headersList.get("referer")
+      headersList.get("referer"),
+      headersList.get("host"),
+      headersList.get("x-forwarded-host")
     )
   ) {
     return originDenied();

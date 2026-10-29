@@ -13,7 +13,12 @@ import {
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { getAuthorizedOrigin, mapAuthError } from "@/lib/auth-errors";
-import { sendWithContinueUrlFallback } from "@/lib/verification-email";
+import { sendWithContinueUrlFallback, readAuthErrorCode } from "@/lib/verification-email";
+import {
+  VERIFICATION_RESEND_COOLDOWN_MS,
+  remainingVerificationCooldownMs,
+  verificationCooldownMessage,
+} from "@/lib/verification-cooldown";
 
 function emailActionContinueUrl(): string | undefined {
   const origin = getAuthorizedOrigin();
@@ -121,15 +126,39 @@ interface AuthState {
   sendPasswordReset: (email: string) => Promise<boolean>;
   resendVerificationEmail: (email: string, password: string) => Promise<boolean>;
   signOut: () => Promise<void>;
+  verificationCooldownUntil: number | null;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+export const useAuthStore = create<AuthState>((set, get) => {
+  const cooldownRemaining = () =>
+    remainingVerificationCooldownMs(get().verificationCooldownUntil, Date.now());
+
+  const noteVerificationSent = () => {
+    set({ verificationCooldownUntil: Date.now() + VERIFICATION_RESEND_COOLDOWN_MS });
+  };
+
+  const sendVerificationOrCooldown = async (): Promise<"sent" | "cooldown"> => {
+    if (cooldownRemaining() > 0) return "cooldown";
+    try {
+      await sendCurrentUserVerificationEmail();
+    } catch (error) {
+      if (readAuthErrorCode(error) === "auth/too-many-requests") {
+        noteVerificationSent();
+      }
+      throw error;
+    }
+    noteVerificationSent();
+    return "sent";
+  };
+
+  return {
   user: null,
   isLoading: true,
   isSigningIn: false,
   hasInitialized: false,
   error: null,
   info: null,
+  verificationCooldownUntil: null,
   _unsubscribe: null,
 
   clearError: () => set({ error: null }),
@@ -187,14 +216,37 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       await signInWithEmailAndPassword(auth, email.trim(), password);
       if (auth.currentUser && !auth.currentUser.emailVerified) {
+        const remaining = cooldownRemaining();
+        if (remaining > 0) {
+          await resetFailedSignIn();
+          set({
+            error: "Verify your email before signing in. Check the link we just sent.",
+            info: verificationCooldownMessage(remaining),
+          });
+          return false;
+        }
         try {
-          await sendCurrentUserVerificationEmail();
+          const delivery = await sendVerificationOrCooldown();
+          await resetFailedSignIn();
+          if (delivery === "cooldown") {
+            set({
+              error: "Verify your email before signing in. Check the link we just sent.",
+              info: verificationCooldownMessage(cooldownRemaining()),
+            });
+            return false;
+          }
         } catch (error) {
           await resetFailedSignIn();
+          if (readAuthErrorCode(error) === "auth/too-many-requests") {
+            set({
+              error: null,
+              info: verificationCooldownMessage(cooldownRemaining()),
+            });
+            return false;
+          }
           set({ error: mapAuthError(error, "verify") });
           return false;
         }
-        await resetFailedSignIn();
         set({
           error:
             "Verify your email before signing in. A verification link is on its way. If it does not arrive, use Resend verification email.",
@@ -239,17 +291,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
       try {
         await sendCurrentUserVerificationEmail();
+        noteVerificationSent();
+        await resetFailedSignIn();
       } catch (error) {
         await resetFailedSignIn();
+        if (readAuthErrorCode(error) === "auth/too-many-requests") {
+          noteVerificationSent();
+          set({
+            info: `Account created. ${verificationCooldownMessage(cooldownRemaining())}`,
+            error: null,
+          });
+          return false;
+        }
         set({
           error: `Your account was created, but the verification email was not sent. ${mapAuthError(error, "verify")} Use Resend verification email below.`,
           info: null,
         });
         return false;
       }
-      await resetFailedSignIn();
       set({
-        info: "Account created. Check your email to verify it, then sign in. You can resend the link below if it does not arrive.",
+        info: "Account created. Check your email to verify it, then sign in. You can resend the link in a minute.",
         error: null,
       });
       return false;
@@ -316,6 +377,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return false;
     }
 
+    const remaining = cooldownRemaining();
+    if (remaining > 0) {
+      set({
+        info: verificationCooldownMessage(remaining),
+        error: null,
+      });
+      return false;
+    }
+
     set({ isSigningIn: true, error: null, info: null });
 
     try {
@@ -343,8 +413,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return true;
       }
 
-      await sendCurrentUserVerificationEmail();
+      const delivery = await sendVerificationOrCooldown();
       await resetFailedSignIn();
+      if (delivery === "cooldown") {
+        set({
+          info: verificationCooldownMessage(cooldownRemaining()),
+          error: null,
+        });
+        return false;
+      }
       set({
         info: "Verification email sent. Check your inbox and spam folder, then sign in.",
         error: null,
@@ -353,6 +430,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch (error) {
       if (auth.currentUser) {
         await resetFailedSignIn();
+      }
+      if (readAuthErrorCode(error) === "auth/too-many-requests") {
+        set({
+          info: verificationCooldownMessage(cooldownRemaining()),
+          error: null,
+        });
+        return false;
       }
       set({ error: mapAuthError(error, "verify") });
       return false;
@@ -373,4 +457,5 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ error: mapAuthError(error, "signin") || "We couldn't sign you out completely. Please try again." });
     }
   },
-}));
+};
+});

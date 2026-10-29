@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ErrorAlert } from "@/components/ErrorAlert";
 import { PasswordField } from "@/components/auth/PasswordField";
+import { ResendVerificationButton } from "@/components/auth/ResendVerificationButton";
 import { useAuthStore } from "@/stores/auth-store";
 
 export default function SignUpPage() {
@@ -87,17 +88,11 @@ export default function SignUpPage() {
           >
             {isSigningIn ? "Creating account…" : "Create account"}
           </button>
-          <button
-            type="button"
-            onClick={handleResendVerification}
-            disabled={isSigningIn || email.trim() === "" || password === ""}
-            className="flex w-full items-center justify-center rounded-md bg-white px-4 py-3 text-sm font-semibold text-indigo-700 shadow-xs ring-1 ring-indigo-200 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:text-slate-400 disabled:ring-slate-200"
-          >
-            Resend verification email
-          </button>
-          <p className="text-center text-xs text-slate-500">
-            Resend uses the email and password above.
-          </p>
+          <ResendVerificationButton
+            email={email}
+            password={password}
+            onResend={handleResendVerification}
+          />
         </form>
 
         {info && (

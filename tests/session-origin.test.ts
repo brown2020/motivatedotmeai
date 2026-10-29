@@ -47,4 +47,72 @@ describe("session origin", () => {
     assert.equal(isAllowedSessionOrigin("http://127.0.0.1:3000", null, dev), true);
     assert.equal(isAllowedSessionOrigin("https://motivatedotmeai.vercel.app", null, dev), false);
   });
+
+  it("allows the request host from x-forwarded-host", () => {
+    const preview = "https://motivatedotmeai-git-dev-ignitechannel.vercel.app";
+    assert.equal(
+      isAllowedSessionOrigin(preview, null, {
+        ...prod,
+        forwardedHost: "motivatedotmeai-git-dev-ignitechannel.vercel.app",
+      }),
+      true
+    );
+  });
+
+  it("allows the request host from the Host header", () => {
+    assert.equal(
+      isAllowedSessionOrigin("https://preview.example", null, {
+        ...prod,
+        host: "preview.example",
+      }),
+      true
+    );
+  });
+
+  it("allows ignitechannel preview origins", () => {
+    assert.equal(
+      isAllowedSessionOrigin(
+        "https://motivatedotmeai-git-dev-ignitechannel.vercel.app",
+        null,
+        prod
+      ),
+      true
+    );
+  });
+
+  it("rejects a cross-site origin even when the request host is a preview", () => {
+    assert.equal(
+      isAllowedSessionOrigin("https://evil.example", null, {
+        ...prod,
+        host: "motivatedotmeai-git-dev-ignitechannel.vercel.app",
+        forwardedHost: "motivatedotmeai-git-dev-ignitechannel.vercel.app",
+      }),
+      false
+    );
+  });
+
+  it("rejects lookalike and non-https preview hosts", () => {
+    assert.equal(
+      isAllowedSessionOrigin("https://foo-ignitechannel.vercel.app.evil.com", null, prod),
+      false
+    );
+    assert.equal(
+      isAllowedSessionOrigin("http://foo-ignitechannel.vercel.app", null, prod),
+      false
+    );
+    assert.equal(
+      isAllowedSessionOrigin("https://ignitechannel.vercel.app", null, prod),
+      false
+    );
+  });
+
+  it("uses only the first forwarded host", () => {
+    assert.equal(
+      isAllowedSessionOrigin("https://preview.example", null, {
+        ...prod,
+        forwardedHost: "evil.example, preview.example",
+      }),
+      false
+    );
+  });
 });

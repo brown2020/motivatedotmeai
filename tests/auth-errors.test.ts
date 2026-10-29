@@ -20,7 +20,7 @@ describe("mapAuthError", () => {
   it("maps verification send failures without claiming the email was sent", () => {
     assert.equal(
       mapAuthError({ code: "auth/too-many-requests" }, "verify"),
-      "Too many attempts. Please wait a bit and try again."
+      "We just sent a verification email. Wait a minute before requesting another."
     );
     assert.equal(
       mapAuthError({ code: "auth/internal-error", message: "SECRET" }, "verify"),

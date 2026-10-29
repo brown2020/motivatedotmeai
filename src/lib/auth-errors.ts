@@ -31,7 +31,9 @@ export function mapAuthError(error: unknown, context: AuthErrorContext): string 
     case "auth/weak-password":
       return "Choose a password with at least 6 characters.";
     case "auth/too-many-requests":
-      return "Too many attempts. Please wait a bit and try again.";
+      return context === "verify"
+        ? "We just sent a verification email. Wait a minute before requesting another."
+        : "Too many attempts. Please wait a bit and try again.";
     case "auth/network-request-failed":
       return "Network error. Check your connection and try again.";
     case "auth/popup-closed-by-user":
