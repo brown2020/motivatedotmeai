@@ -18,16 +18,16 @@ Goal and habit tracking with Firebase auth, daily logs, and optional AI coaching
 
 | Layer | Tech |
 | --- | --- |
-| Framework | Next.js ^16.2.4 (App Router) |
-| UI | React ^19.2.5, Tailwind CSS ^4.2.4 |
-| Language | TypeScript ^6 |
-| State | Zustand ^5.0.12 |
-| Backend | Firebase ^12.12.1 + Firebase Admin ^13.8.0 |
-| AI | Vercel AI SDK (`ai` ^6) + `@ai-sdk/openai` ^3 |
-| Validation | Zod ^4.3.6 |
+| Framework | Next.js ^16.4.3 (App Router) |
+| UI | React ^19.3.1, Tailwind CSS ^4.3.3 |
+| Language | TypeScript ^6.0.3 |
+| State | Zustand ^5.0.16 |
+| Backend | Firebase ^13.1.0 + Firebase Admin ^14.5.0 |
+| AI | Vercel AI SDK (`ai` ^7) + `@ai-sdk/openai` ^4 |
+| Validation | Zod ^4.6.7 |
 | Tests | Node.js built-in test runner (`tests/*.test.ts`) |
 
-Requires Node.js `>= 22`.
+Requires Node.js `>= 24`.
 
 ## Project structure
 
@@ -50,7 +50,7 @@ firestore.rules  storage.rules
 
 ### Prerequisites
 
-- Node.js 22+
+- Node.js 24+
 - npm
 - Firebase project (Auth, Firestore, Storage)
 - Optional: OpenAI API key for goal insights

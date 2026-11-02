@@ -1,5 +1,5 @@
-import type { GoalCategory, GoalPriority, Milestone } from "@/types/goals";
-import { deriveGoalStatus } from "@/lib/goal-status";
+import type { GoalCategory, GoalPriority, Milestone } from "../types/goals.ts";
+import { deriveGoalStatus } from "./goal-status.ts";
 
 export type HabitFrequency = "daily" | "weekly";
 

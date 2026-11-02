@@ -35,16 +35,16 @@ Motivate.me AI is a goal and habit tracking web app. It helps signed-in users cr
 
 ## Validation State
 
-- `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build` are the local quality gates.
+- `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build` are the local quality gates. `npm test` runs the Node test runner on `tests/*.test.ts`.
 - React Doctor score target is 100 (`npm run doctor`).
-- `npm audit --omit=dev --audit-level=moderate` still reports two moderate advisories through Next's nested PostCSS dependency; npm's suggested fix requires `--force` and would install a breaking Next downgrade, so it is deferred.
+- `npm audit` reports 0 vulnerabilities. Transitive `minimatch` is overridden to 11.0.4 and `glob` to 14.0.3. `@grpc/grpc-js` stays at `>=1.14.7`. `jwks-rsa`'s `jose` stays pinned to 5.10.0 so `require("firebase-admin/auth")` keeps working (jose 6 is ESM-only and `jwks-rsa` loads it with `require()`).
 
 ## Current Codebase Risks
 
 - `src/stores/app-store.ts` is a large shared store that mixes subscriptions, writes, derived calculations, and daily-log logic.
 - Some Firestore writes still derive updates from client-side store snapshots, which can be stale under rapid interaction or multiple tabs.
-- Dependency cleanup reduced production audit findings from 7 vulnerabilities to 2 moderate advisories. The remaining npm-suggested fix is unsafe because it requires a forced breaking Next downgrade.
-- Automated test coverage is not present in the package scripts.
+- TypeScript stays on 6.0.3. TypeScript 7.0.2 typechecks with `tsc`, but it ships no programmatic API and `typescript-eslint` 8.72.1 refuses to load it.
+- `npm test` covers auth/session helpers, goal status, habit streaks, the AI coach prompt, and quickstart template application. UI flows are not covered by a browser runner.
 
 ## Non-Roadmap Improvement Goals
 
