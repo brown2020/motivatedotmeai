@@ -18,11 +18,11 @@ Goal and habit tracking with Firebase auth, daily logs, and optional AI coaching
 
 | Layer | Tech |
 | --- | --- |
-| Framework | Next.js ^16.4.3 (App Router) |
-| UI | React ^19.3.1, Tailwind CSS ^4.3.3 |
+| Framework | Next.js ^16.4.5 (App Router) |
+| UI | React ^19.3.1, Tailwind CSS ^4.3.4 |
 | Language | TypeScript ^6.0.3 |
 | State | Zustand ^5.0.16 |
-| Backend | Firebase ^13.1.0 + Firebase Admin ^14.5.0 |
+| Backend | Firebase ^13.2.0 + Firebase Admin ^14.5.0 |
 | AI | Vercel AI SDK (`ai` ^7) + `@ai-sdk/openai` ^4 |
 | Validation | Zod ^4.6.7 |
 | Tests | Node.js built-in test runner (`tests/*.test.ts`) |
